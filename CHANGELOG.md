@@ -69,10 +69,22 @@
   Windows 用的是计划任务 + 交互式主体，POSIX 的等价做法**还没有写过**。
 - 若 DSH 将来改了会话命名规则，或你在同一目录里手工建了裸 UUID 会话，它们会被当作派活会话归档。
 
+### 修复
+
+- **面板在重载后整块消失**：报错为
+  `locale namespace "fleet" already has locale "en"`。
+  locale 服务对每个「命名空间 + 语言」**只允许一个占用者**，重复注册会抛错；
+  而客户端半由插件包加载，**可能在旧注册还活着时被再次 apply**（页面刷新，或 HMR 收到重建的 bundle），
+  第二次就抛，整个设置页跟着挂掉。现在注册前先释放上一次的注册 ——
+  这不只是为了不报错：**新 bundle 带的是新文案，跳过注册会让旧文案继续显示**。
+  只有「命名空间已被占用」这一种错误被容忍，其他错误照旧抛出。
+
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **544 断言 / 14 套**（新增 `test/verify-prune.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **557 断言 / 15 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
+- 面板 locale 的修复也**由断言钉住**：`test/verify-client-locale.mjs` 会把插件 apply 两次，
+  并断言第二次不抛错 —— 对修复前的代码跑，它精确复现上面那条报错。
 
 [0.2.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.1.0
