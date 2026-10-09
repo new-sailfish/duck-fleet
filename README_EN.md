@@ -57,7 +57,16 @@ dsh plugin --profile desktop add /path/to/duck-fleet
 ```
 
 `dsh plugin add` packs it into the profile and syncs it into `dsh.profile.bundles`.
-Once installed, the panel appears under **Settings → DuckFleet**.
+
+> **Restart DSH once after installing.**
+>
+> The panel is the plugin's **client half**, and a client plugin's bundle is built and cached when the
+> **application starts** — DSH caches it as `immutable`, keyed by a revision derived from the file's
+> **timestamps and size**. So **refreshing the page is not enough**: a running process does not re-read a
+> new bundle from disk.
+>
+> The server half (the `fleet_*` tools, delegation) applies as soon as the plugin row reloads, so the
+> restart is only for the panel.
 
 ### Manual mounting (equivalent)
 
@@ -70,7 +79,8 @@ The profile's `package.json`:
 }
 ```
 
-After you change the plugin source, **disable and re-enable** the `fleet` row in Settings to apply it.
+After you change the plugin's **server** source, **disable and re-enable** the `fleet` row in Settings to
+apply it; after you change the **client** side (`lib/client.js`, the panel), **restart DSH**.
 
 ---
 
