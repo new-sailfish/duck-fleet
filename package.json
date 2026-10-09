@@ -1,6 +1,6 @@
 {
   "name": "dsh-duck-fleet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DuckFleet: one flock of machines, one command. Add a machine once and its ACP delegation tool appears — drive one, several, or all of them from natural language. ／ 鸭群：一群机器，一声令下。添加一台机器即自动获得它的派活工具，用自然语言让某个／某几个／全部机器干活。",
   "type": "module",
   "license": "MIT",
@@ -34,7 +34,8 @@
     "./locale/*.json": "./locale/*.json"
   },
   "scripts": {
-    "test": "node test/run.mjs"
+    "test": "node test/run.mjs",
+    "prepublishOnly": "node test/run.mjs"
   },
   "icon": "./icon.svg",
   "files": [
@@ -45,6 +46,7 @@
     "cordis.patch.yml",
     "README.md",
     "README_EN.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "meta": {
