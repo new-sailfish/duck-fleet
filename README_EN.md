@@ -183,6 +183,7 @@ machine inherits them from the shared settings.
 | `keyFile` | empty | Path to the SSH private key. **It must be right, or ssh will silently use another identity** |
 | `sshCommand` | `ssh` | The ssh executable |
 | `profile` | `acp` | Remote profile name |
+| `autoArchive` | off | **Experimental.** Session-cleanup rules; see below |
 
 > **Why `remoteCommand` is not here**: its usable value is the **absolute path** to the `dsh` CLI on the
 > controlled machine, and that path carries that machine's user name (for example
@@ -279,6 +280,75 @@ account**, and it will not stop to ask you. So — **you own the command you del
   reported back per machine by the model.
 - **It does not proxy file transfer.** If you need files moved, have the controlled machine's agent handle it
   inside the task.
+
+---
+
+## Session cleanup (experimental, Windows only)
+
+### The problem it solves
+
+Every delegation opens a **new ACP session** on the controlled machine. The ACP path **files that session
+under no workspace** — it carries a `cwd` and never calls `workspace.attachSession`. So they all land in the
+sidebar's **"ungrouped"** bucket, one per delegation, until the list is unusable.
+
+Nothing on the controller can fix it after the fact: the operation that would attach a session
+(`workspaceRegistry.attachSession`) has no ACP equivalent and no HTTP route, and every delegation goes
+through ACP.
+
+**Archiving is the only lever.** `archivedSessionIds` in `workspace.json` is a flat set, and
+`validateStoredState` asks nothing of its contents beyond the ids existing — so sessions that belong to no
+workspace can still be hidden.
+
+### How to use it
+
+```bash
+# Dry run: probe the platform and change nothing
+fleet_prune --inspect
+
+# Clean every machine, keeping the newest 5
+fleet_prune
+
+# Clean one machine, keeping the newest 2
+fleet_prune --id huawei-vm --keep 2
+```
+
+The panel has the same entry point (the dashed box under the shared settings), with a per-machine button.
+
+### Rules and safety properties
+
+| Item | Behaviour |
+|---|---|
+| What is eligible | **Only sessions whose directory name is a bare UUID** |
+| How many stay | The newest N (default 5, configurable as `autoArchive.keepLast`) |
+| Backup | First run writes `workspace.json.bak-before-archive` and **never overwrites an existing backup** |
+| Reversible | Archived sessions can be un-archived from the sidebar's "Archived" view |
+| Write check | The file is re-parsed after writing, and every workspace title is compared character by character |
+
+> **Why the test is "bare UUID"**: a session created over ACP has a bare uuid id (`1da62ac9-…`), while one
+> created in the DSH UI is prefixed `session-` (`session-f7737053-…`). **Filtering by directory alone is not
+> enough** — a controlled machine's `cwd` is often a directory the operator also works in, and that would
+> archive your own sessions along with the delegations. The distinction was measured, not assumed.
+
+### This interrupts whatever is running
+
+The cleanup has to **stop that machine's DSH** (the registry is held in memory and would otherwise be
+overwritten), archive, then start it again. **About 30 seconds, during which delegations to that machine are
+interrupted.**
+
+### Platform support
+
+| Platform | Status |
+|---|---|
+| Windows | ✅ Verified repeatedly on two real machines |
+| macOS / Linux | ❌ **Not implemented and not tested** — refused outright, never attempted |
+
+It refuses rather than "tries", because two parts are platform-specific: the registry lives at a different
+path, and **how a GUI app is put back on the interactive desktop** after being stopped is a scheduled task
+with an interactive principal on Windows, with **no POSIX equivalent written yet**.
+
+> **Known misclassification risk**: if DSH ever changes how it names sessions, or you hand-create a bare-uuid
+> session in that directory, it will be treated as a delegation and archived. The backup and the
+> reversibility exist for exactly that.
 
 ---
 
