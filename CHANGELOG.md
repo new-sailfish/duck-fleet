@@ -98,10 +98,20 @@
   所以**刷新页面不会让它重读磁盘**。
   服务端那一半（`fleet_*` 工具、派活）在插件行重新加载后即时生效，**重启只是为了面板**。
 - 修正了原文「禁用再启用即可生效」的说法：它对服务端成立，对客户端（`lib/client.js`，即面板）不成立。
+- **被控机提示词里的权限环节加固了两处。**
+  该环节本来就有（把 `sandbox-policy.mode: danger-full-access` 与 `approval.policy: never` 写进
+  `acp` profile 的 `cordis.patch.yml`），但有两个缺口：
+  1. **「已存在就不要重建」被误读成「可以跳过这一步」** —— 一个手工建的老 profile 能正常启动，
+     patch 里却还是模板的空 `[]`，于是「能连上、能对话、什么命令都执行不了」。
+     现在要求**先读该文件当前内容、缺哪条补哪条**。
+  2. **没有说明不要去设置面板里改权限。** 面板里的权限选项是**每会话**的覆盖，
+     而 patch 配的是**这个 profile 的部署默认值** —— 后者才是委派真正走的那一层
+     （已核实：ACP 的 `session/new` 不接受任何权限或沙箱参数，绑定不了会话级覆盖）。
+     现在明确写出这一点，免得用户照直觉去点面板而没有任何效果。
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **586 断言 / 16 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **589 断言 / 16 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。

@@ -186,6 +186,14 @@ console.log('\nthe profile step also makes the profile able to RUN things:');
   check('it says the empty array must be replaced', prompt.includes('空的 `[]` 必须被这些条目替换'), 'the patch file starts as []');
   check('it warns that starting is not proof', prompt.includes('只验证「能启动」不够'), 'the failure is at execution, not startup');
   check('it says a hand-made profile needs it too', prompt.includes('也要写这个 patch'));
+  // "A profile already exists" is not the same as "its patch is right": a profile created by hand starts fine
+  // and still carries the template's empty `[]`. Without an explicit read-first, step one's "do not rebuild an
+  // existing profile" reads as permission to skip this step entirely.
+  check('it tells the agent to READ the patch before writing', prompt.includes('先读这个文件当前的内容'), 'existence is not correctness');
+  check('it says to add only what is missing', prompt.includes('缺哪条补哪条'), 'a partial patch must be completed, not replaced blindly');
+  check('it warns against the settings-panel permission control',
+    prompt.includes('不要去 DSH 设置面板里改权限'),
+    'the panel control is a per-SESSION override; the profile patch is the deployment default that delegation actually uses');
 }
 
 console.log('\nthe firewall is judged by reachability, not by a rule name:');
