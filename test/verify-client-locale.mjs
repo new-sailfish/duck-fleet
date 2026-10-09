@@ -79,12 +79,47 @@ function makeLocale() {
   };
 }
 
-function makeContext(locale) {
+/**
+ * A slot service with the real contract for this case.
+ *
+ * `register` returns a disposer, and a second entry under the SAME id in a LIST slot throws — the message the
+ * composition actually produced was:
+ *
+ *     list slot "settings.section" already has an entry with id "fleet" at priority 0
+ *
+ * `inject` runs its callback immediately when the slot is already declared, exactly as documented, which is
+ * what makes a dropped disposer fatal on the next application.
+ */
+function makeSlots() {
+  const entries = new Map();
+  const injections = [];
+  return {
+    entries,
+    injections,
+    register(options) {
+      const id = options.id ?? options.key;
+      if (entries.has(id)) {
+        throw new Error(`list slot "settings.section" already has an entry with id "${id}" at priority 0 (registered by mf) — register at a different priority to shadow it (lowest renders)`);
+      }
+      entries.set(id, { options, component: arguments.length > 1 ? arguments[1] : undefined });
+      return () => { entries.delete(id); };
+    },
+    inject(key, callback) {
+      const record = { key, callback, active: true };
+      injections.push(record);
+      // Already-declared slot: the callback runs synchronously.
+      callback();
+      return () => { record.active = false; };
+    },
+  };
+}
+
+function makeContext(locale, slots = makeSlots()) {
   const effects = [];
   return {
     effects,
     locale,
-    slots: { inject: () => {}, register: () => {} },
+    slots,
     logger: { warn: () => {} },
     effect(run, name) { effects.push({ name, dispose: run() }); },
   };
@@ -161,6 +196,76 @@ console.log('\nan unrelated locale failure still surfaces:');
     surfaced = error instanceof Error ? error.message : String(error);
   }
   check('a malformed-tag error is rethrown', surfaced === 'locale tag is malformed', surfaced);
+}
+
+console.log('\nthe settings page is registered exactly once:');
+{
+  const locale = makeLocale();
+  const slots = makeSlots();
+  const ctx = makeContext(locale, slots);
+  plugin.apply(ctx);
+  check('the page is registered', slots.entries.has('fleet'), [...slots.entries.keys()].join(','));
+  const registered = slots.entries.get('fleet');
+  check('it is a visible settings section', registered.options.name === 'settings.section');
+  check('with the declared order', registered.options.order === 25, String(registered.options.order));
+  check('and a label function', typeof registered.options.label === 'function');
+  check('the label reads the bound namespace', registered.options.label() === 'title', registered.options.label());
+}
+
+console.log('\napplying it twice does not throw (the reported slot failure):');
+{
+  // The exact sequence that failed. The old contribution was disposed only through the caller's ctx.effect,
+  // and a second application happened while that fiber was still live.
+  const locale = makeLocale();
+  const slots = makeSlots();
+  plugin.apply(makeContext(locale, slots));
+  let threw;
+  try {
+    plugin.apply(makeContext(locale, slots));
+  } catch (error) {
+    threw = error instanceof Error ? error.message : String(error);
+  }
+  check('the second apply does not throw', threw === undefined, threw);
+  check('and exactly one entry is registered', slots.entries.size === 1, `${String(slots.entries.size)} entries`);
+}
+
+console.log('\nthe teardown releases the page:');
+{
+  const locale = makeLocale();
+  const slots = makeSlots();
+  const ctx = makeContext(locale, slots);
+  plugin.apply(ctx);
+  check('registered before teardown', slots.entries.has('fleet'));
+  for (const effect of ctx.effects) effect.dispose?.();
+  check('released after teardown', !slots.entries.has('fleet'), [...slots.entries.keys()].join(','));
+  let reThrew;
+  try {
+    plugin.apply(makeContext(locale, slots));
+  } catch (error) {
+    reThrew = error instanceof Error ? error.message : String(error);
+  }
+  check('and re-registers cleanly afterwards', reThrew === undefined && slots.entries.has('fleet'), reThrew);
+}
+
+console.log('\na slot id owned by someone else still surfaces:');
+{
+  // A genuine collision — another plugin holding the id — must NOT be swallowed silently and forever: only a
+  // registration this plugin can identify as its own earlier one is tolerated, and even then it warns.
+  const locale = makeLocale();
+  const slots = makeSlots();
+  slots.entries.set('fleet', { options: { id: 'fleet' }, component: undefined });
+  const warn = [];
+  const ctx = makeContext(locale, slots);
+  ctx.logger = { warn: (message) => warn.push(message) };
+  let surfaced;
+  try {
+    plugin.apply(ctx);
+  } catch (error) {
+    surfaced = error instanceof Error ? error.message : String(error);
+  }
+  check('a take-over is reported, not thrown', surfaced === undefined, surfaced);
+  check('and the operator is warned', warn.length === 1 && /already has an entry with id/.test(warn[0]), warn.join(' | '));
+  check('leaving the other occupant in place', slots.entries.size === 1);
 }
 
 console.log(`\n${failures === 0 ? 'CLIENT LOCALE REGISTRATION VERIFIED' : `${String(failures)} CHECK(S) FAILED`}`);

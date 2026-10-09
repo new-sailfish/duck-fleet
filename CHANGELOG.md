@@ -71,20 +71,31 @@
 
 ### 修复
 
-- **面板在重载后整块消失**：报错为
-  `locale namespace "fleet" already has locale "en"`。
-  locale 服务对每个「命名空间 + 语言」**只允许一个占用者**，重复注册会抛错；
-  而客户端半由插件包加载，**可能在旧注册还活着时被再次 apply**（页面刷新，或 HMR 收到重建的 bundle），
-  第二次就抛，整个设置页跟着挂掉。现在注册前先释放上一次的注册 ——
-  这不只是为了不报错：**新 bundle 带的是新文案，跳过注册会让旧文案继续显示**。
-  只有「命名空间已被占用」这一种错误被容忍，其他错误照旧抛出。
+- **面板在重载后整块消失**（两个注册表，同一个根因：**释放只挂在 ctx 的 fiber 上，disposer 被丢弃了**）。
+  两者都表现为「旧面板还在，新的注册不上去」：
+
+  1. **locale 字典**：`locale namespace "fleet" already has locale "en"`。
+     locale 服务对每个「命名空间 + 语言」只允许一个占用者。
+  2. **设置页槽位**：`list slot "settings.section" already has an entry with id "fleet" at priority 0
+     (registered by mf)`。slots 层的释放**通过调用方的 `ctx.effect` 生效，而旧代码把
+     `ctx.slots.register(...)` 的返回值**直接丢弃**了，所以重新 apply 时旧条目还占着 id ——
+     **这就是「鸭群选项卡还是老的」的原因**。
+
+  两处现在都是**先释放再注册**。这不只是为了不报错：**新 bundle 带的是新面板，跳过注册等于重载白做**。
+  另外 `slots.inject` 的等待也要在下次 apply 时释放，否则它会再触发一次、注册出第二个同 id 条目。
+  只有「已被自己占用」这类错误被容忍并**记一条警告**，其他错误照旧抛出 ——
+  别人的 id 被占用时不会静默，只是不让整个插件加载失败。
+
+  > 读懂这条报错花了不少功夫：它把 id 的持有者报成 **`mf`**，那是**核心自己的注册者名**，
+  > 不是某个插件的名字。消息说的其实是**本插件自己上一次留下的条目**。
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **557 断言 / 15 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **570 断言 / 15 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
-- 面板 locale 的修复也**由断言钉住**：`test/verify-client-locale.mjs` 会把插件 apply 两次，
-  并断言第二次不抛错 —— 对修复前的代码跑，它精确复现上面那条报错。
+- 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
+  跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。
+  对修复前的代码跑，它**逐字复现**上面两条报错。
 
 [0.2.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.1.0
