@@ -12,6 +12,7 @@ import { importFromHarness } from './harness.mjs';
 import {
   GENERATED_KEY_COMMENT,
   GENERATED_KEY_NAME,
+  buildSetup,
   buildSetupPrompt,
   fingerprintOf,
   generateKey,
@@ -155,6 +156,38 @@ console.log('\nthe account is a claim to verify, never a fact to act on:');
     }
   })());
   check('no placeholder reaches a built prompt', !/<[^>]*(账号|未填写)[^>]*>/.test(prompt), prompt.split('\n').find((line) => line.includes('<')) ?? '');
+}
+
+console.log('\nthe guide names the TRUE reason, and offers only the matching remedy:');
+{
+  // Reported from a live session: the guide said "this controller has no SSH key to offer yet" while the
+  // operator's key was configured and working, and offered a button that generates one. The real cause was a
+  // blank account field. The card printed one fixed sentence for every cause, so the screen could not be
+  // trusted to say what was wrong. `needs` is the discriminator that fixes it, and these assertions are what
+  // keep it honest.
+  const dir = await mkdtemp(join(tmpdir(), 'fleet-needs-'));
+  // `generateKey` takes an ssh directory and derives the pair's paths from it, so it is given one and the
+  // generated name is what `resolveKey` looks for inside it.
+  const madeIn = await generateKey(deps, { sshDir: dir });
+  check('a key was generated for the comparison', madeIn.problem === undefined, madeIn.problem);
+
+  const blankAccount = await buildSetup(deps, { user: '', host: '', sshDir: dir });
+  check('a blank account reports the account as the cause', blankAccount.needs === 'user', JSON.stringify(blankAccount.needs));
+  check('and it is NOT reported as a missing key', !/no SSH key/.test(String(blankAccount.problem)), String(blankAccount.problem));
+  check('the account message names the field to fill', /login account/.test(String(blankAccount.problem)), String(blankAccount.problem));
+  check('no prompt is produced', blankAccount.prompt === undefined);
+
+  // A directory with no key at all, and nothing configured: the one case that really is "no key to offer".
+  const empty = await mkdtemp(join(tmpdir(), 'fleet-nokey-'));
+  const noKey = await buildSetup(deps, { user: 'dev', host: 'h', keyFile: join(empty, 'nope'), sshDir: empty });
+  check('a genuinely absent key reports the key as the cause', noKey.needs === 'key', JSON.stringify(noKey.needs));
+  check('and points at where a key would go', typeof noKey.hint === 'string' && noKey.hint.length > 0);
+
+  // The distinction is the whole fix: the panel chooses its wording AND whether to show the generate button
+  // from `needs`, so a cause reported as the wrong kind sends the operator to do the wrong thing.
+  check('the two causes are told apart', blankAccount.needs !== noKey.needs, `${String(blankAccount.needs)} vs ${String(noKey.needs)}`);
+  await rm(dir, { recursive: true, force: true });
+  await rm(empty, { recursive: true, force: true });
 }
 
 console.log('\nstep structure:');
