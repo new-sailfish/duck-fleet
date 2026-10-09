@@ -365,8 +365,15 @@ with an interactive principal on Windows, with **no POSIX equivalent written yet
 ## Known limitations
 
 - **The controller must be the "superior" of the controlled machines**: the plugin registers providers
-  and tools at runtime, so adding a machine **needs no restart**; but changing the plugin **source**
-  requires disabling and re-enabling that row.
+  and tools at runtime, so **adding a machine needs no restart** (editing `fleet.json`, the shared settings,
+  and adding or removing machines all apply immediately).
+- **After upgrading the plugin, restart DSH for the panel to change.** This is not a defect in this plugin
+  but how DSH loads a **client plugin**: its bundle is built when the **application starts** and cached as
+  `immutable`, with a revision derived from the file's **timestamps and size** — so **refreshing the page
+  does not help**, because a running process does not re-read the bundle from disk. The server half (the
+  `fleet_*` tools, delegation) applies as soon as the plugin row reloads, so **the restart is only for the
+  panel**. The test is simple: **tools working means the server half is current; a stale panel means a
+  restart is due.**
 - **`cwd` has two sides**: the local ssh process's working directory is always the local session
   directory (a path that exists only on the controlled machine cannot serve as the local working
   directory — then not even the name `ssh` resolves, and you get `ENOENT: spawn ssh ENOENT`, which reads
