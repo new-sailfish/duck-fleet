@@ -91,7 +91,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **570 断言 / 15 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **586 断言 / 16 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。
