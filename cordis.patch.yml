@@ -1,0 +1,20 @@
+# DuckFleet bundle patch: mounts the plugin into the host composition of a dsh profile.
+#
+# The whole plugin is ONE Host row. Every controlled machine is data in
+# $DSH_HOME/fleet.json, registered at runtime by the plugin itself — there are no per-machine
+# loader rows to copy, and adding a machine never edits this file.
+#
+# The plugin registers one ACP provider (`fleet-<id>`) and one delegation tool per machine, plus a
+# usage section in the system prompt, so a natural-language request ("run this on all machines")
+# reaches the right tool.
+#
+# Install:
+#   dsh plugin --profile <name> add dsh-duck-fleet      # from npm
+#   dsh plugin --profile <name> add <path-to-this-dir>  # from a local checkout
+#
+# The `dsh plugin` command installs the package into the profile and reconciles it into the
+# profile's `dsh.profile.bundles` layer list.
+- insert:
+    - id: fleet
+      # Node-resolvable package name — must stay in sync with package.json `name`.
+      name: 'dsh-duck-fleet'

@@ -1,0 +1,93 @@
+{
+  "name": "dsh-duck-fleet",
+  "version": "0.1.0",
+  "description": "DuckFleet: one flock of machines, one command. Add a machine once and its ACP delegation tool appears — drive one, several, or all of them from natural language. ／ 鸭群：一群机器，一声令下。添加一台机器即自动获得它的派活工具，用自然语言让某个／某几个／全部机器干活。",
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "new-sailfish"
+  },
+  "homepage": "https://github.com/new-sailfish/duck-fleet#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/new-sailfish/duck-fleet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/new-sailfish/duck-fleet/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "duckfleet",
+    "fleet",
+    "acp",
+    "ssh",
+    "multi-machine",
+    "remote-agent",
+    "subagent"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "icon": "./icon.svg",
+  "files": [
+    "index.js",
+    "lib/*.js",
+    "locale/*.json",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "README_EN.md",
+    "LICENSE"
+  ],
+  "meta": {
+    "title": "DuckFleet",
+    "description": "One flock of machines, one command. Add a machine once and its delegation tool appears. ／ 一群机器，一声令下。添加一台机器，自动获得它的派活工具。"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-client-locale": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-runtime": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-subagent": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "^0.2.0-rc.2",
+    "react": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": { "optional": true },
+    "@deepseek-ai/dsh-client-locale": { "optional": true },
+    "@deepseek-ai/dsh-client-runtime": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-settings": { "optional": true },
+    "@deepseek-ai/dsh-subagent": { "optional": true },
+    "@deepseek-ai/dsh-tools": { "optional": true },
+    "react": { "optional": true }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

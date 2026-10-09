@@ -1,0 +1,18 @@
+# Dependencies (a profile installs this package, so a checkout should not carry one).
+node_modules/
+
+# Per-generation copies written by index.js when it is imported from a symlinked development
+# checkout. Build output: never committed, never packaged (see `files` in package.json).
+.gen/
+
+# Working notes and design drafts. Deliberately not part of the repository: they are written for whoever is
+# editing the plugin rather than for people installing it, and they carry machine-specific detail that must
+# not ship. `docs/` is also absent from `files` in package.json, so it never reaches npm either.
+docs/
+
+# Editors and OS.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*~
