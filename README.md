@@ -2,6 +2,11 @@
 
 **中文** | [English](./README_EN.md)
 
+[![npm version](https://img.shields.io/npm/v/dsh-duck-fleet)](https://www.npmjs.com/package/dsh-duck-fleet)
+[![License](https://img.shields.io/npm/l/dsh-duck-fleet)](./LICENSE)
+[![DSH plugin](https://img.shields.io/badge/DSH-plugin-4dabf7)](https://github.com/topics/dsh-plugin)
+[![Listed on awesome-dsh-hub](https://img.shields.io/badge/Listed%20on-awesome_dsh_hub-4dabf7)](https://github.com/ukinch605/awesome-dsh-hub)
+
 > 一群机器，一声令下。
 
 DuckFleet 是一个 DSH 插件：往主控机上装一次，把多台机器接进同一群，

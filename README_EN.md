@@ -2,6 +2,11 @@
 
 [中文](./README.md) | **English**
 
+[![npm version](https://img.shields.io/npm/v/dsh-duck-fleet)](https://www.npmjs.com/package/dsh-duck-fleet)
+[![License](https://img.shields.io/npm/l/dsh-duck-fleet)](./LICENSE)
+[![DSH plugin](https://img.shields.io/badge/DSH-plugin-4dabf7)](https://github.com/topics/dsh-plugin)
+[![Listed on awesome-dsh-hub](https://img.shields.io/badge/Listed%20on-awesome_dsh_hub-4dabf7)](https://github.com/ukinch605/awesome-dsh-hub)
+
 > One flock, one command.
 
 DuckFleet is a DSH plugin: install it once on the controller, connect several machines into one flock,
