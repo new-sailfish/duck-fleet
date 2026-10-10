@@ -23,6 +23,7 @@ import {
   resolveKey,
 } from '../lib/setup.js';
 import { NO_INSTALL_RULE, NO_PRIVATE_KEY_RULE } from '../lib/prompt-rules.js';
+import { ACCOUNT_KNOWN, ACCOUNT_UNKNOWN } from '../lib/prompt-sections.js';
 
 let failures = 0;
 const check = (label, condition, detail) => {
@@ -142,7 +143,7 @@ console.log('\nthe account is a claim to verify, never a fact to act on:');
   check('it is explicitly called not a fact', prompt.includes('不是事实') || prompt.includes('未必是本机的事实'));
   check('the machine must verify the account exists', prompt.includes('本机是否真有这个账号'));
   check('the machine must report which account it runs as', prompt.includes('DSH 当前以哪个账号在运行'));
-  check('a mismatch must stop the work, not be worked around', prompt.includes('不要自行挑一个账号继续'));
+  check('a mismatch must not be worked around unilaterally', prompt.includes('不要自行挑一个账号往下装'));
   check('the prompt never asserts the controller WILL log in as that account', !/会以\s*`?dev`?\s*的身份/.test(prompt));
   // An account is OPTIONAL. The account lives on the controlled machine, and this prompt already sends that
   // machine to find it and report back — so a controller that does not know it yet has everything it needs.
@@ -157,14 +158,33 @@ console.log('\nthe account is a claim to verify, never a fact to act on:');
     const anonymous = buildSetupPrompt({ publicKey: read.publicKey, user: '' });
     check('a prompt without an account is still produced', typeof anonymous === 'string' && anonymous.length > 1000, String(anonymous?.length));
     check('it says the account is not yet known', anonymous.includes('还不知道'), 'the step must read as discovery, not verification');
-    check('it asks for the account to be reported, not assumed', anonymous.includes('报告给主控机'));
+    check('it asks for the account to be reported, not assumed', anonymous.includes('供最后回报'));
     check('it names what the account must match', anonymous.includes('DSH 所在的那个账号'));
-    check('it forbids picking an account unilaterally', anonymous.includes('不要自行挑一个账号'));
+    check('it forbids switching accounts', anonymous.includes('不要换'));
     check('no placeholder account is asserted as fact', !/会以\s*`?<[^>]*>`?\s*的身份/.test(anonymous));
     check('it does not print an unresolved template token', !anonymous.includes('{CONTROLLER}') && !anonymous.includes('{ACCOUNT_STEP}'), 'a surviving token is the bug this file already recorded once');
     // Both wordings must be reachable, and they must differ: a known account is a claim to verify.
     check('a known account selects the verification wording', buildSetupPrompt({ publicKey: read.publicKey, user: 'dev' }).includes('本机是否真有这个账号'));
     check('the two wordings are different', anonymous !== buildSetupPrompt({ publicKey: read.publicKey, user: 'dev' }));
+
+    // The account step must not contradict the steps after it. It once said "stop and report, then continue
+    // with the remaining steps" — but the key installation is four sections later and is what actually writes
+    // authorized_keys, so halting there means the key is never installed, which is the prompt's whole purpose.
+    // Nothing needs the controller's answer first: the agent IS the account, so `~` cannot be the wrong home.
+    check('the unknown-account wording does not halt the workflow', !/(?<!不要)停下来/.test(ACCOUNT_UNKNOWN), 'halting skips the key installation');
+    check('it says not to treat the account as a gate', ACCOUNT_UNKNOWN.includes('当成一道要等的关卡'));
+    check('it explains why ~ is necessarily right', ACCOUNT_UNKNOWN.includes('装不到别的账号上去'));
+    check('it tells the agent to carry on', ACCOUNT_UNKNOWN.includes('继续往下走'));
+    check('it says what waiting would cost', ACCOUNT_UNKNOWN.includes('公钥就永远装不上了'));
+    // Known-account mismatches DO stop, because there a record conflicts with reality and only the controller
+    // can rule on it — so the two wordings must be distinguishable, and say which is which.
+    check('a known-account mismatch still stops', ACCOUNT_KNOWN.includes('唯一要停的地方'));
+    check('and says it is waiting for an answer', ACCOUNT_KNOWN.includes('等它回话'));
+    check('and points out the difference from the unknown case', ACCOUNT_KNOWN.includes('区别'));
+    // The key lands under the running account, so the two must be cross-checked in the report.
+    check('the key step targets the settled account', prompt.includes('上一步核实过的那个账号') && prompt.includes('~/.ssh/authorized_keys'));
+    check('the report asks which account the key went under', prompt.includes('公钥装到了哪个账号名下'));
+    check('and says a difference must be stated', prompt.includes('直接说明哪个是哪个'));
   }
   check('no placeholder reaches a built prompt', !/<[^>]*(账号|未填写)[^>]*>/.test(prompt), prompt.split('\n').find((line) => line.includes('<')) ?? '');
 }
@@ -187,7 +207,7 @@ console.log('\nthe guide names the TRUE reason, and offers only the matching rem
   const noAccount = await buildSetup(deps, { user: '', host: '', sshDir: dir });
   check('no account still yields a prompt', typeof noAccount.prompt === 'string' && noAccount.prompt.length > 1000, String(noAccount.prompt?.length));
   check('and it is not reported as a problem at all', noAccount.problem === undefined, String(noAccount.problem));
-  check('the prompt asks the machine to report the account', noAccount.prompt.includes('报告给主控机'));
+  check('the prompt has the machine settle the account itself', noAccount.prompt.includes('供最后回报'));
 
   // A directory with no key at all, and nothing configured: the one case that really is "no key to offer".
   const empty = await mkdtemp(join(tmpdir(), 'fleet-nokey-'));
