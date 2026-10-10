@@ -19,8 +19,14 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-/** Below this, a suite is presumed to have exited early rather than passed. */
-const MIN_EXPECTED = 10;
+/**
+ * Below this, a suite is presumed to have exited early rather than passed.
+ *
+ * Per-suite rather than global, because the suites differ by an order of magnitude: the dictionary check makes
+ * eight assertions about one file, while the setup suite makes a hundred and thirty-five. A single floor high
+ * enough to catch a truncation in the large suites reports the small ones as broken.
+ */
+const MIN_EXPECTED = { default: 10, 'verify-dictionaries.mjs': 8 };
 
 const wanted = process.argv.slice(2);
 const suites = readdirSync(here)
@@ -46,7 +52,7 @@ for (const suite of suites) {
   assertions += ok;
   failures += bad;
 
-  const early = ok < MIN_EXPECTED;
+  const early = ok < (MIN_EXPECTED[suite] ?? MIN_EXPECTED.default);
   if (bad > 0 || early) {
     broken.push(suite);
     console.log(`  [CHECK] ${suite}  ok=${String(ok)} fail=${String(bad)}${early ? '  (exited early?)' : ''}`);

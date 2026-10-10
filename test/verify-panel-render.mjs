@@ -273,7 +273,7 @@ console.log('\nthe two ways to add a machine are offered as a choice:');
   check('it says there are two ways', /两条路|Two ways/.test(forkText));
   check('it says they are alternatives, not steps', /不是前后步骤|not steps/.test(forkText));
   check('one option is manual entry', /我自己填|Fill in the details/.test(forkText));
-  check('the other is preparing the machine first', /先让机器自己准备好|Prepare the machine first/.test(forkText));
+  check('the other is letting the machine prepare itself', /让机器自己准备|Let the machine prepare itself/.test(forkText));
   check('the manual option says what you need to know', /你已经知道主机名|already know the hostname/.test(forkText));
   check('the prompt option says the machine reports back', /回报给你|report them back/.test(forkText));
   // Both buttons must be real buttons in the tree, or the choice is only described rather than offered.

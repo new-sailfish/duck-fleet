@@ -79,8 +79,15 @@
 - **两个 tab 分的是「手填 / 提示词」，不是「表单 / JSON」。**
   第一版把 tab 开在了表单与 JSON 之间，那是**分错了轴** —— 它俩编辑的是同一份记录，
   是**同一条路的两种看法**；真正互为替代的是**值的来源**：自己填，还是让机器报。
-  现在 JSON 收进「手填」内部作为视图切换，tab 留给「我自己填 / 先让机器自己准备好」。
-  机器列表始终显示在面板下方，不会被任一 tab 挡住。
+  现在 JSON 收进「手填」内部作为视图切换，tab 留给「我自己填 / 让机器自己准备」。
+  **机器列表始终显示在面板下方**，不会被任一 tab 挡住。
+- **表单里那个「复制被控端配置提示词」按钮删掉了。** 提示词已经是**平级 tab**，
+  再在「我自己填」里放一个"复制提示词"就自相矛盾 —— 你正在自己填，却被递上一段给机器的说明书。
+- tab 文案改为「**让机器自己准备**」（原「先让机器自己准备好」），并补了它到底做什么的说明；
+  提示词面板的标题也改成「这段提示词贴到被控机上执行」，说清那段文字是**给谁看的**。
+- 字典清掉 6 个**无人引用**的键（`setupButton`/`setupEntry`/`sharedCwdHint`/`setupTitle`/
+  `changeKeyNew`/`envOk`/`setupCopied`/`setupServeMinutes`），并新增一个套件
+  断言**两种语言键集一致、没有孤儿、代码引用的键都已声明**。
 
 ### 安全性
 
@@ -167,7 +174,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **674 断言 / 17 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **682 断言 / 18 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。
