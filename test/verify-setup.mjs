@@ -144,17 +144,28 @@ console.log('\nthe account is a claim to verify, never a fact to act on:');
   check('the machine must report which account it runs as', prompt.includes('DSH 当前以哪个账号在运行'));
   check('a mismatch must stop the work, not be worked around', prompt.includes('不要自行挑一个账号继续'));
   check('the prompt never asserts the controller WILL log in as that account', !/会以\s*`?dev`?\s*的身份/.test(prompt));
-  // A placeholder is NOT emitted as a fallback: a literal `<the controller's account>` reached a real machine
-  // once, and its agent correctly stopped and asked — a wasted round trip, and indistinguishable from a value
-  // somebody typed. The prompt refuses instead, so the panel can say what to fill in.
-  check('a prompt without an account is refused, not filled with a placeholder', (() => {
-    try {
-      buildSetupPrompt({ publicKey: read.publicKey, user: '' });
-      return false;
-    } catch (error) {
-      return String(error.message).includes('needs the login account');
-    }
-  })());
+  // An account is OPTIONAL. The account lives on the controlled machine, and this prompt already sends that
+  // machine to find it and report back — so a controller that does not know it yet has everything it needs.
+  // Requiring one here was the controller demanding information only the other side can supply, and it broke
+  // the workflow that never needed it: setting a machine up BEFORE adding it to the list, which is exactly how
+  // a real machine was configured.
+  //
+  // What must still never happen is a FABRICATED account. A literal `<the controller's account>` reached a real
+  // machine once, and its agent sensibly stopped and asked — a wasted round trip, and indistinguishable from a
+  // value somebody typed. The unknown wording asks for a discovery report instead of asserting a name.
+  {
+    const anonymous = buildSetupPrompt({ publicKey: read.publicKey, user: '' });
+    check('a prompt without an account is still produced', typeof anonymous === 'string' && anonymous.length > 1000, String(anonymous?.length));
+    check('it says the account is not yet known', anonymous.includes('还不知道'), 'the step must read as discovery, not verification');
+    check('it asks for the account to be reported, not assumed', anonymous.includes('报告给主控机'));
+    check('it names what the account must match', anonymous.includes('DSH 所在的那个账号'));
+    check('it forbids picking an account unilaterally', anonymous.includes('不要自行挑一个账号'));
+    check('no placeholder account is asserted as fact', !/会以\s*`?<[^>]*>`?\s*的身份/.test(anonymous));
+    check('it does not print an unresolved template token', !anonymous.includes('{CONTROLLER}') && !anonymous.includes('{ACCOUNT_STEP}'), 'a surviving token is the bug this file already recorded once');
+    // Both wordings must be reachable, and they must differ: a known account is a claim to verify.
+    check('a known account selects the verification wording', buildSetupPrompt({ publicKey: read.publicKey, user: 'dev' }).includes('本机是否真有这个账号'));
+    check('the two wordings are different', anonymous !== buildSetupPrompt({ publicKey: read.publicKey, user: 'dev' }));
+  }
   check('no placeholder reaches a built prompt', !/<[^>]*(账号|未填写)[^>]*>/.test(prompt), prompt.split('\n').find((line) => line.includes('<')) ?? '');
 }
 
@@ -171,21 +182,23 @@ console.log('\nthe guide names the TRUE reason, and offers only the matching rem
   const madeIn = await generateKey(deps, { sshDir: dir });
   check('a key was generated for the comparison', madeIn.problem === undefined, madeIn.problem);
 
-  const blankAccount = await buildSetup(deps, { user: '', host: '', sshDir: dir });
-  check('a blank account reports the account as the cause', blankAccount.needs === 'user', JSON.stringify(blankAccount.needs));
-  check('and it is NOT reported as a missing key', !/no SSH key/.test(String(blankAccount.problem)), String(blankAccount.problem));
-  check('the account message names the field to fill', /login account/.test(String(blankAccount.problem)), String(blankAccount.problem));
-  check('no prompt is produced', blankAccount.prompt === undefined);
+  // A directory with a key, and NO account: this must produce a prompt. It is the case that was broken — the
+  // guide refused to generate anything, which made setting up a machine before adding it impossible.
+  const noAccount = await buildSetup(deps, { user: '', host: '', sshDir: dir });
+  check('no account still yields a prompt', typeof noAccount.prompt === 'string' && noAccount.prompt.length > 1000, String(noAccount.prompt?.length));
+  check('and it is not reported as a problem at all', noAccount.problem === undefined, String(noAccount.problem));
+  check('the prompt asks the machine to report the account', noAccount.prompt.includes('报告给主控机'));
 
   // A directory with no key at all, and nothing configured: the one case that really is "no key to offer".
   const empty = await mkdtemp(join(tmpdir(), 'fleet-nokey-'));
   const noKey = await buildSetup(deps, { user: 'dev', host: 'h', keyFile: join(empty, 'nope'), sshDir: empty });
   check('a genuinely absent key reports the key as the cause', noKey.needs === 'key', JSON.stringify(noKey.needs));
   check('and points at where a key would go', typeof noKey.hint === 'string' && noKey.hint.length > 0);
+  check('the key cause produces no prompt', noKey.prompt === undefined);
 
-  // The distinction is the whole fix: the panel chooses its wording AND whether to show the generate button
-  // from `needs`, so a cause reported as the wrong kind sends the operator to do the wrong thing.
-  check('the two causes are told apart', blankAccount.needs !== noKey.needs, `${String(blankAccount.needs)} vs ${String(noKey.needs)}`);
+  // The discriminator still has to distinguish the causes that remain: the panel shows the key preamble and the
+  // generate button only for `key`.
+  check('problems and success are told apart', noKey.needs === 'key' && noAccount.needs === undefined, `${String(noKey.needs)} vs ${String(noAccount.needs)}`);
   await rm(dir, { recursive: true, force: true });
   await rm(empty, { recursive: true, force: true });
 }
