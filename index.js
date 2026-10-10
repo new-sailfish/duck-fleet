@@ -31,8 +31,10 @@
  * ## Read the version instead of guessing
  *
  * {@link FLEET_REVISION} is stamped into the `fleet_version` tool and into this package's own
- * diagnostics. After re-enabling the row, call `fleet_version` and compare: if the revision matches
- * what is on disk, the new code is running. No inference required.
+ * diagnostics. After re-enabling the row, call `fleet_version`: the revision it reports is read from
+ * the copy that is running — not from this module, whose constant a cached entry module would have
+ * frozen at the first import — and the two digests it prints answer whether that copy was built from
+ * the sources now on disk. No inference required.
  *
  * ## `inject` must stay static
  *
@@ -54,7 +56,7 @@ import { fileURLToPath } from 'node:url';
  * Bump the suffix whenever the plugin's behavior changes. It is what `fleet_version` reports, so a
  * reload can be confirmed by reading rather than by trusting.
  */
-export const FLEET_REVISION = 'r2-clean';
+export const FLEET_REVISION = 'r4-version-probe';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -114,6 +116,31 @@ let buildProblem;
 let loadedToken = '(none yet)';
 
 /**
+ * The revision declared by the copy this process last loaded.
+ *
+ * Read from the copy's own entry module rather than from {@link FLEET_REVISION}: the Loader caches a
+ * module by resolved path, so re-enabling the row runs THIS instance again and its constant still holds
+ * the value from the first import. Reporting that value would name the previous revision while the new
+ * copy runs — the exact misreading this diagnostic exists to prevent.
+ */
+let loadedRevision = FLEET_REVISION;
+
+/**
+ * The revision a directory declares, read from its entry module.
+ *
+ * @param directory - a generation copy, or the package root for the no-copy fallback.
+ * @returns the declared revision, or this module's own when it cannot be read.
+ */
+function revisionOf(directory) {
+  try {
+    const source = readFileSync(join(directory, 'index.js'), 'utf8');
+    return /FLEET_REVISION\s*=\s*'([^']+)'/.exec(source)?.[1] ?? FLEET_REVISION;
+  } catch {
+    return FLEET_REVISION;
+  }
+}
+
+/**
  * The content digest of the current sources.
  *
  * This is what decides whether an existing copy may be reused. A token from timestamps and sizes can
@@ -158,7 +185,13 @@ function buildGeneration() {
   const entry = join(directory, 'plugin.js');
   loadedToken = token;
   try {
-    if (readFileSync(entry, 'utf8').includes(sentinel(digest))) return { token, entry };
+    if (readFileSync(entry, 'utf8').includes(sentinel(digest))) {
+      // A reused copy is still the copy this process runs, so it records its digest too. Leaving this to
+      // the rebuild branch below made the reported digest describe an earlier build.
+      loadedDigest = digest;
+      loadedRevision = revisionOf(directory);
+      return { token, entry };
+    }
   } catch {
     // Not built yet, or unreadable: rebuild below.
   }
@@ -182,26 +215,38 @@ function buildGeneration() {
       '',
     ].join('\n'), 'utf8');
     loadedDigest = digest;
+    loadedRevision = revisionOf(directory);
     return { token, entry };
   } catch (error) {
     buildProblem = String(error?.message ?? error);
+    // The source implementation runs instead, so the revision is the one on disk — never this module's
+    // constant, which a cached entry module has frozen at the first import.
+    loadedRevision = revisionOf(here);
     return { token, entry: join(here, 'lib', 'plugin.js') };
   }
 }
 
-/** The digest of the copy this process last loaded. */
-let loadedDigest = '(none yet)';
+/** The digest recorded by the copy this process last loaded; `undefined` until one is loaded. */
+let loadedDigest;
 
 /**
  * What this process is running, for the `fleet_version` tool.
  *
- * @returns the revision, the loaded generation, and any copy failure.
+ * The digest is the freshness signal: a copy records the digest of the sources it was built from, and
+ * `sourcesDigest` is computed from those sources right now. Equal means the running copy is the current
+ * code. A revision comparison alone cannot answer that, because a revision is a name and two different
+ * sources can carry the same one.
+ *
+ * @returns the revision, the loaded generation, both digests, and any copy failure.
  */
 export function fleetVersion() {
+  const sourcesDigest = digestOf(sourceFiles());
   return {
-    revision: FLEET_REVISION,
+    revision: loadedRevision,
     generation: loadedToken,
     digest: loadedDigest,
+    sourcesDigest,
+    inSync: loadedDigest === undefined ? undefined : loadedDigest === sourcesDigest,
     generated: buildProblem === undefined,
     ...buildProblem === undefined ? {} : { problem: buildProblem },
   };

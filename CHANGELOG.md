@@ -5,6 +5,20 @@
 
 ---
 
+## [0.4.0] — 2026-10-10
+
+### 新增
+
+- 派活时自动附带环境与工作规范前置词；每台机器可用 `platform` 选择 `windows`、`posix` 或不附带。
+
+### 修复
+
+- 面板「SSH 连接密钥」的提示曾是一个不存在的示例路径；现说明留空时的取值来源。
+- 共享设置说明与 `fleet_defaults` 的 `keyFile` 描述称单台机器可覆盖，与实现不符；现改为机器记录无法覆盖。
+- `fleet_version` 报告的修订版曾停在重载前的值；现报告实际加载的那份副本，并同时给出加载副本与当前源码的摘要，用于判断是否需要重新启用插件行。
+
+---
+
 ## [0.3.0] — 2026-10-10
 
 ### 新增
@@ -92,6 +106,7 @@
 - 局域网分享提示词：短期 HTTP 地址、4 位随机路径、限单台机器读取、自动关闭。
 - `fleet_test`：仅验证 SSH + ACP 握手，不消耗 token。
 
+[0.4.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.4.0
 [0.3.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.3.0
 [0.2.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.1.0

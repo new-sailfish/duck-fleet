@@ -75,9 +75,46 @@ console.log('\nthe version tool reports a real revision:');
   check('the entry reports a revision', typeof report.revision === 'string' && report.revision !== 'unknown', JSON.stringify(report));
   check('the entry reports the loaded generation', report.generation === generations[0], `${String(report.generation)} vs ${generations[0]}`);
   check('a digest is reported', typeof report.digest === 'string' && report.digest.length === 32, String(report.digest));
+  check('the sources digest is reported', typeof report.sourcesDigest === 'string' && report.sourcesDigest.length === 32, String(report.sourcesDigest));
+  check('the loaded copy is in sync with the sources', report.inSync === true, JSON.stringify({ digest: report.digest, sourcesDigest: report.sourcesDigest }));
   const served = await call(a.routes, '/fleet/api/version');
   check('the route reports the same revision', served.body?.value?.revision === report.revision, JSON.stringify(served.body?.value).slice(0, 160));
   check('the route lists the operations it serves', Array.isArray(served.body?.value?.operations) && served.body.value.operations.includes('setup'), JSON.stringify(served.body?.value?.operations));
+}
+
+console.log('\na re-used copy still records its digest (the reuse path must not report an earlier build):');
+{
+  const reused = stubContext();
+  await plugin.apply(reused.ctx, {});
+  const report = plugin.fleetVersion();
+  check('the reused copy still reports a 32-char digest', typeof report.digest === 'string' && report.digest.length === 32, String(report.digest));
+  check('and it still matches the sources', report.inSync === true, JSON.stringify({ digest: report.digest, sourcesDigest: report.sourcesDigest }));
+}
+
+console.log('\na cached entry module does not freeze the reported revision:');
+{
+  // The live failure: the Loader caches the entry module by resolved path, so a re-enable re-runs the
+  // instance imported earlier and its own FLEET_REVISION constant stays at the first import's value.
+  // Editing the revision here reproduces exactly that — this module has already been imported, so the
+  // fresh copy can only be described correctly by the copy itself.
+  const entryPath = join(scratch, 'index.js');
+  const original = readFileSync(entryPath, 'utf8');
+  const frozen = plugin.fleetVersion().revision;
+  writeFileSync(entryPath, original.replace(/FLEET_REVISION = '[^']+'/, "FLEET_REVISION = 'r-cached-entry-test'"), 'utf8');
+  const later = new Date(Date.now() + 6000);
+  utimesSync(entryPath, later, later);
+
+  const c = stubContext();
+  await plugin.apply(c.ctx, {});
+  const report = plugin.fleetVersion();
+  check('the revision comes from the copy, not from the already-imported entry module',
+    report.revision === 'r-cached-entry-test', `${String(report.revision)} (this module still holds ${String(frozen)})`);
+  check('the new copy is in sync with the edited sources', report.inSync === true, JSON.stringify({ digest: report.digest, sourcesDigest: report.sourcesDigest }));
+
+  writeFileSync(entryPath, original, 'utf8');
+  const back = new Date(Date.now() + 8000);
+  utimesSync(entryPath, back, back);
+  await plugin.apply(stubContext().ctx, {});
 }
 
 console.log('\nan edited source produces a copy that carries the edit:');
@@ -89,6 +126,10 @@ console.log('\nan edited source produces a copy that carries the edit:');
   writeFileSync(target, original.replace(marker[0], "apiRevision: 'api-EDITED-BY-TEST'"), 'utf8');
   const later = new Date(Date.now() + 2000);
   utimesSync(target, later, later);
+
+  // The point of the digest pair: an edit that has not been loaded yet must be visible as out of sync,
+  // which is the reading a revision comparison cannot give.
+  check('an edit that is not loaded yet reads as out of sync', plugin.fleetVersion().inSync === false, JSON.stringify(plugin.fleetVersion()));
 
   const b = stubContext();
   await plugin.apply(b.ctx, {});
@@ -102,7 +143,7 @@ console.log('\na copy whose contents were tampered with is rebuilt, not trusted:
 {
   const token = plugin.fleetVersion().generation;
   const proxyPath = join(scratch, '.gen', token, 'plugin.js');
-  const poisoned = readFileSync(proxyPath, 'utf8').replace(/\/\/ dsh-fleet-digest: [0-9a-f]{32}/, '// dsh-fleet-digest: 00000000000000000000000000000000');
+  const poisoned = readFileSync(proxyPath, 'utf8').replace(/\/\/ dsh-duck-fleet-digest: [0-9a-f]{32}/, '// dsh-duck-fleet-digest: 00000000000000000000000000000000');
   writeFileSync(proxyPath, poisoned, 'utf8');
   // Force a distinct token so the rebuild is observable, then restore the poisoned copy under it.
   const target = join(scratch, 'lib', 'setup.js');

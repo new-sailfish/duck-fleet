@@ -154,6 +154,8 @@ profile 的 `package.json`：
 
 多台机器**并发**执行，不会等一倍的时间。长任务加 `run_in_background: true`，之后用 `job_output` 收结果。
 
+每次派活都会在任务前面**自动附加**一段「环境与工作规范」——那台机器的环境事实、由事实推出的硬约束、以及跨平台的工作通则。写任务时不要重复这些内容。哪台机器带哪一版由它的 `platform` 字段决定。
+
 ---
 
 ## 机器字段
@@ -180,6 +182,7 @@ profile 的 `package.json`：
 | `cwd` | 空 | **那台机器上**的工作区。空 = 让远端用自己的默认工作区 |
 | `permission` | `allow` | 那台机器上授权提示怎么答 |
 | `description` | 空 | 一句话说明这台的用途，会附到工具描述里 |
+| `platform` | `windows` | 那台机器跑什么系统，决定派活前置词带哪一版：`windows` 全带、`posix` 只带工作通则、`none` 不带。**不是 Windows 的机器要显式设置** —— 默认值是假设 |
 | `extraArgs` | `[]` | 额外的 ssh 参数 |
 
 `remoteCommand` 不在共享设置里，因为它的可用值是被控机上 `dsh` 的绝对路径，

@@ -167,6 +167,10 @@ Or edit `$DSH_HOME/fleet.json` directly; no restart needed.
 Multiple machines run **concurrently**, so you do not wait twice as long. For long tasks, pass
 `run_in_background: true` and collect the results later with `job_output`.
 
+Every delegation carries an environment-and-working-rules preamble in front of the task: that machine's
+environment facts, the constraints derived from them, and the task-agnostic working rules. Do not repeat
+any of it in the task you write. Which version a machine gets is its `platform` field.
+
 ---
 
 ## Machine fields
@@ -194,6 +198,7 @@ machine. **Per-machine fields** are independent, and a new machine inherits them
 | `cwd` | empty | The workspace **on that machine**. Empty = let the remote side use its own default workspace |
 | `permission` | `allow` | How permission prompts are answered on that machine |
 | `description` | empty | One line on what this machine is for; appended to the tool description |
+| `platform` | `windows` | What that machine runs, which selects the preamble each delegation carries: `windows` sends all of it, `posix` only the working rules, `none` nothing. **Set it when the machine is not Windows** — the default is an assumption |
 | `extraArgs` | `[]` | Extra ssh arguments |
 
 `remoteCommand` is not a shared setting, because its usable value is the absolute path to `dsh` on that
