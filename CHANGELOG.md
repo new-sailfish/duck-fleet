@@ -171,6 +171,13 @@
 
 ### 修复
 
+- **完成的配对结果会被定时删掉 —— 于是"到底成没成"在窗口一过就查不到了。**
+  我一度对已添加的配对在到期时执行删除，理由写的是"它已经完成了，面板手里有结果了" ——
+  **那正是"成功却显示成过期"的同一处错误思维的另一个落点**：面板手里的东西会丢，
+  **而结果才是这次配对的产物**。已添加的机器、还欠的那一步，都必须**读得到**；
+  否则"它成了吗"这个问题恰好在有人要问的时候变得无解。
+  现在**已结束的配对永不自动清除**（只有"一次汇报都没有"的才会被清扫），
+  清除发生在**明确前进时**：打开新配对、或插件注册被释放。
 - **陈旧令牌：汇报被"接受"了，却落进一个什么都不会做的配对（真 bug，也就是"第六步一直未回报"的原因）。**
   `/pair` 把 token 返回给面板，面板缓存它，**于是被控机手里可能还攥着上一轮的 token**。
   它拿旧 token 汇报，**旧配对照样回答 `{"ok":true,"closed":true}`** —— 而那个配对早已处理完 `done`，
@@ -309,7 +316,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **842 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **849 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。

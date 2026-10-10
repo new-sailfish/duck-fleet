@@ -197,5 +197,40 @@ console.log('\n`pending` keeps the work instead of discarding it:');
   await progress.close();
 }
 
+console.log('\na finished result is never silently deleted:');
+{
+  /**
+   * The result is the PRODUCT of a pairing, so nothing may remove it on its own.
+   *
+   * A consumed pairing used to be dropped at the deadline, which is how a successful run came to be reported as
+   * "no report before the deadline": the answer existed, then stopped existing, and the moment it vanished was
+   * exactly the moment somebody would ask whether it had worked. The same mistake cost a real operator a re-run —
+   * the machine was added, and the panel said the last stage had never been reported.
+   */
+  const progress = new ProgressListener();
+  const opened = await progress.open({ minutes: 5 });
+  const payload = { label: 'cursor', host: '192.168.3.172', user: 'cursorbot', port: 22, cwd: 'C:/w' };
+  await fetch(opened.url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-fleet-token': opened.token },
+    body: JSON.stringify({ stage: 'done', state: 'ok', payload }),
+  });
+  check('the result is readable', progress.status(opened.token)?.state === 'done');
+
+  // Adding the machine consumes the pairing. The result must survive that, because that IS the outcome.
+  progress.consume(opened.token);
+  check('a consumed pairing still reports its result', progress.status(opened.token)?.state === 'done');
+  check('and still carries the payload', progress.status(opened.token)?.payload?.host === '192.168.3.172');
+  check('and says it was consumed', progress.status(opened.token)?.consumed === true);
+
+  // Clearing happens when the operator moves on, not on a timer.
+  const second = await progress.open({ minutes: 5 });
+  progress.forgetFinished();
+  check('the finished one is cleared by an explicit move', progress.status(opened.token) === undefined);
+  check('a pairing still in progress survives that', progress.status(second.token) !== undefined);
+  check('and it is still receiving', progress.status(second.token)?.state === 'running');
+  await progress.close();
+}
+
 console.log(`\n${failures === 0 ? 'HANDSHAKE CLOSING VERIFIED' : `${String(failures)} CHECK(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);
