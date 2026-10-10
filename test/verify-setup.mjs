@@ -310,8 +310,15 @@ console.log('\nthe report is answerable by the machine:');
   check('it says why a bare dsh is not enough', prompt.includes('PATH 很短'));
   check('it forbids guessing that path', prompt.includes('不要猜一个'));
 
-  // The closing draft exists so the controller does not have to reassemble a machine record from prose.
+  // The closing draft exists so the controller does not have to reassemble a machine record from prose. It is
+  // THREE forms of the same values, because each is used differently: the plain list is read, the JSON is
+  // pasted into the form's JSON view, and the call is handed to `fleet_add` as it stands.
   check('it asks for a pasteable fleet_add draft', prompt.includes('fleet_add'));
+  check('it asks for the plain field list', prompt.includes('字段 = 值'));
+  check('it asks for the complete JSON', prompt.includes('完整表单 JSON'));
+  check('it asks for the tool call as one runnable line', prompt.includes('fleet_add {"label"'));
+  check('it requires the three to agree', prompt.includes('三样的值必须完全一致'), 'three disagreeing copies are worse than one');
+  check('it forbids inventing a value it could not read', prompt.includes('不要编') && prompt.includes('(未取到)'));
   for (const field of ['label', 'host', 'user', 'port', 'remoteCommand']) {
     check(`the draft carries ${field}`, prompt.includes(`"${field}"`), 'a draft missing a required field cannot be used as-is');
   }

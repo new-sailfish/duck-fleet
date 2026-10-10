@@ -272,13 +272,19 @@ console.log('\nthe two ways to add a machine are offered as a choice:');
   const forkText = allText;
   check('it says there are two ways', /两条路|Two ways/.test(forkText));
   check('it says they are alternatives, not steps', /不是前后步骤|not steps/.test(forkText));
-  check('one option is manual entry', /我自己填|Fill in the details/.test(forkText));
-  check('the other is letting the machine prepare itself', /让机器自己准备|Let the machine prepare itself/.test(forkText));
-  check('the manual option says what you need to know', /你已经知道主机名|already know the hostname/.test(forkText));
-  check('the prompt option says the machine reports back', /回报给你|report them back/.test(forkText));
+  // The tabs name the ACTION. An earlier wording named the prompt's own content ("paste this on the
+  // controlled machine"), which described one tab's contents rather than what the tab does.
+  check('one tab is manual entry', /手动填写配置|Fill it in myself/.test(forkText));
+  check('the other tab is automatic discovery', /自动获取配置|Get it automatically/.test(forkText));
+  check('the manual tab says what you need to know', /你已经知道主机名|already know the hostname/.test(forkText));
+  check('the automatic tab says what to do', /复制到被控机上执行|Copy the prompt to the controlled machine/.test(forkText));
   // Both buttons must be real buttons in the tree, or the choice is only described rather than offered.
   const labels = walked.tags.filter((tag) => tag === 'button').length;
   check('there is a button for each path', labels >= 2, `${String(labels)} buttons`);
+
+  // The automatic tab only runs when chosen, so its own contents are covered by verify-setup.mjs (which
+  // asserts the three outputs) and by the state check below.
+  check('the automatic tab is not open by default', !/它最后会输出三样/.test(forkText), 'the chooser shows the tabs, not the tab bodies');
 }
 
 console.log('\nthe prompt text is not dumped into the page:');
