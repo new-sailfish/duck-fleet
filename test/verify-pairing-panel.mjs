@@ -271,5 +271,37 @@ console.log('\nmore than one address asks instead of guessing:');
   check('nothing was added without a choice', !text.includes('已添加进列表'));
 }
 
+console.log('\na failure is explained, not just announced:');
+{
+  // Reported from a real run: six stages all `ok`, and the card said "failed" with no reason. The cause is that
+  // the final report arrived without a `payload`, so there was nothing to add — which reads as a contradiction
+  // from outside, because every visible step succeeded. The operator has to be told the work is not lost.
+  const pairing = {
+    token: 't',
+    state: 'failed',
+    reports: 11,
+    remainingMs: 0,
+    error: 'the final report carried no payload ／ 最终汇报里没有携带配置内容',
+    stages: [
+      { stage: 'sshd', state: 'ok', detail: '已在账号 cursorbot 下部便携版 OpenSSH 9.8p1，监听 0.0.0.0:22' },
+      { stage: 'firewall', state: 'ok' },
+      { stage: 'profile', state: 'ok' },
+      { stage: 'key', state: 'ok' },
+      { stage: 'verify', state: 'ok' },
+      { stage: 'done', state: 'ok' },
+    ],
+  };
+  const text = render({ [HOOK.addTab]: 'prompt', [HOOK.setup]: setup, [HOOK.pairing]: pairing });
+  check('the failure is named', text.includes('失败'));
+  check('the reason is given', text.includes('没有携带配置内容'), 'a bare "failed" beside six ticks is unreadable');
+  check('the reason is labelled', text.includes('失败原因'));
+  check('it says the steps really happened', text.includes('实际做过的事'));
+  check('it says the machine is already configured', text.includes('已经配好了'));
+  check('and it offers the way forward', text.includes('重新发起一次配对') && text.includes('手动添加'));
+  // The checklist is the evidence that the work happened, so the error must not replace it.
+  check('the successful stages are still listed', text.includes('SSH 服务与登录账号') && text.includes('公钥'));
+  check('and their detail survives', text.includes('便携版 OpenSSH'));
+}
+
 console.log(`\n${failures === 0 ? 'PAIRING PANEL VERIFIED' : `${String(failures)} CHECK(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);

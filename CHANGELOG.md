@@ -171,6 +171,17 @@
 
 ### 修复
 
+- **终态汇报的载荷格式，提示词里从来没写过（真实失败）。**
+  步骤 0 写着「最后一步 `done` 要把配置一起带上，**格式见文末**」——
+  而**文末那三样里根本没有 `payload` 这个字段**：它只讲了给人看的列表、JSON、`fleet_add` 指令。
+  **"格式见文末"指向了一个没写格式的地方。**
+  后果：一台真实的被控机**六个阶段全部成功**（装了便携版 OpenSSH、补了 profile 的 patch、装了公钥、验证过 ACP 能跑命令），
+  却因为没有把配置放进 `payload`，被判定**整单失败** —— 而它该做的活其实全做完了。
+  现在步骤 0 里给了**完整的 `curl` 示例**（`payload` 就是文末第二样那个 JSON），
+  并写明「写在正文里、写在 `detail` 里、或写成"见上文"，主控机都拿不到」，以及失败时该发 `state:"fail"`。
+- **面板现在解释失败，而不只是宣布失败。** 六个对勾旁边一个"失败"是读不懂的。
+  卡片现在给出**原因**，并说明**活没白干**：上面那些阶段是它实际做过的事，
+  如果六步都做完了，那台机器**已经配好了**，缺的只是回报本身 —— 所以可以重新发起，或照它回报的值手动添加。
 - **装公钥那一步的说法不准确，已按实测改正。** 原文写「装到别的账号**等于没装**」——
   实际不是：**授权是「账号级」的，不是「机器级」的**。公钥放进谁的 `authorized_keys`，
   主控机就能以**谁的身份**登录；放到别的账号名下**不会失败，而是授权给了那个账号**，
@@ -257,7 +268,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **818 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **826 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。
