@@ -194,7 +194,9 @@ console.log('\nthe account is a claim to verify, never a fact to act on:');
     check('the report asks which account the key went under', prompt.includes('公钥装到了哪个账号名下'));
     check('and says a difference must be stated', prompt.includes('直接说明哪个是哪个'));
   }
-  check('no placeholder reaches a built prompt', !/<[^>]*(账号|未填写)[^>]*>/.test(prompt), prompt.split('\n').find((line) => line.includes('<')) ?? '');
+  // The ban is on a placeholder being emitted AS the account, not on angle brackets anywhere: the workspace
+  // instruction legitimately shows `<账号>` as a path example, and that is a path, not a claim about who logs in.
+  check('no placeholder account reaches a built prompt', !/会以\s*`?<[^>]*>`?\s*的身份/.test(prompt), prompt.split('\n').find((line) => line.includes('<账号>')) ?? '');
 }
 
 console.log('\nthe guide names the TRUE reason, and offers only the matching remedy:');
@@ -318,9 +320,10 @@ console.log('\nthe public key block is byte-exact and idempotent:');
 
 console.log('\nthe report is answerable by the machine:');
 {
-  // The first version demanded a fingerprint computed by this plugin (`dsh-fleet-…`), which nothing on
-  // the controlled side can produce — that check could never have passed.
-  check('it no longer demands this plugin\'s own fingerprint', !prompt.includes('dsh-fleet-'), 'that value is uncomputable remotely');
+  // The first version demanded a fingerprint computed by this plugin (`dsh-fleet-<hex>`), which nothing on
+  // the controlled side can produce — that check could never have passed. Matched by SHAPE, because the name
+  // `dsh-fleet-workspace` is a directory this prompt legitimately asks for.
+  check('it no longer demands this plugin\'s own fingerprint', !/dsh-fleet-[0-9a-f]{8}/.test(prompt), 'that value is uncomputable remotely');
   check('it asks for the standard SSH fingerprint', prompt.includes('ssh-keygen -lf') && prompt.includes('SHA256:'));
   check('it asks for the account and its home directory', prompt.includes('whoami') && prompt.includes('家目录的绝对路径'));
   check('it asks for the SSH service state', prompt.includes('是否开机自启'));
@@ -355,7 +358,13 @@ console.log('\nthe report is answerable by the machine:');
   // "cannot connect".
   check('it says host is unverifiable from the controlled side', prompt.includes('不知道**主控机能不能连上哪个地址'));
   check('it requires marking host unverified', prompt.includes('未经证实'));
-  check('it asks for every address when there are several', prompt.includes('多网卡'));
+  check('it asks for every address when there are several', prompt.includes('都列出来'));
+  // The address rule: the wrong answer here is the one whose failure is least informative, and a VPN address
+  // is the usual wrong answer.
+  check('it bans VPN and tunnel interfaces', prompt.includes('tun') && prompt.includes('169.254'));
+  check('it prefers the controller subnet', prompt.includes('同一个 /24'));
+  check('it falls back to ICMP', prompt.includes('ping'));
+  check('it says an unreachable answer must be reported as such', prompt.includes('没有任何地址能确认到达主控机'));
   check('it says a wrong host surfaces only as a connection failure', prompt.includes('连不上'));
 }
 
