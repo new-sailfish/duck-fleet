@@ -171,6 +171,21 @@
 
 ### 修复
 
+- **杀毒软件会拦 DSH，而这不是每次都发生（实测）。**
+  Windows Defender 把 DSH 报成 **`Trojan:Win32/SuspExec.SE`** —— 判据是**行为**，不是文件：
+  「Electron 主程序 → 一个 runner 脚本 → PowerShell → 内嵌脚本再起子进程」**这个形状就是 dropper 的样子**，
+  而它也正是 **DSH 执行每一个子进程的方式**。
+  **实测的完整记录**：只有 **1 条**检测，其 `Resources.Count = 1` 且那唯一资源是 **`CmdLine:_…`（一条命令行）**，
+  **不是文件路径** —— 所以**没有任何文件被隔离**，DSH 照常工作。
+  正因如此它**容易被忽略**：一直没事，直到某一步恰好撞上启发式。
+  **这一条不属于本插件**（我们走 `ssh → dsh --profile acp`，而远程 agent 执行命令用的是 DSH 自己的子进程服务），
+  所以插件这边能做的只有**让它可见**：提示词新增一节，**在动 SSH 之前**先查 Defender 状态 ——
+  - 已有排除 → 报 `skipped`，继续；
+  - 没有排除 → **停下来把命令给操作者，由他决定**（`Add-MpPreference -ExclusionPath`），
+    并写明**这是降低本机安全防护**的操作；
+  - **禁止**自行加排除，**禁止**用改名/关实时保护之类的方式绕过；
+  - **不加排除也照常继续**，但要在回报里写明「后续步骤可能被拦」——
+    让主控机知道风险，比让它以为一切正常要好。
 - **主机密钥变了就永久连不上，而且只报一个裸的 `exit code: 255`（真实失败）。**
   一台机器重启后，**便携版 sshd 被系统 sshd 取代，主机密钥随之改变**。`ssh` 对"已存条目不匹配"是**拒绝连接**的
   （`accept-new` 只接受**未知**主机），于是那台机器**再也连不上**，只能靠人手敲 `ssh-keygen -R`。
@@ -343,7 +358,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **867 断言 / 23 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **880 断言 / 23 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。

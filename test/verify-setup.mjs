@@ -418,5 +418,34 @@ console.log('\nthe two standing bans are present and exported:');
 await rm(isolated, { recursive: true, force: true });
 void readFile;
 
+console.log('\nthe security-software check comes before the work, and asks rather than decides:');
+{
+  /**
+   * Measured on a real machine: Windows Defender flagged DSH as `Trojan:Win32/SuspExec.SE`. The judgement is
+   * BEHAVIOURAL — an Electron host spawning a runner script that spawns PowerShell that spawns another child —
+   * which is what a dropper looks like, and which is also how DSH runs every subprocess. Nothing was quarantined
+   * (the detection's single resource was a `CmdLine:_…` string, not a file path) and DSH kept working, so the
+   * failure is intermittent: it lands on whichever step happens to be running when the heuristic fires.
+   *
+   * The prompt cannot fix that, but it can make it visible, and it must not silently weaken the machine's
+   * security: the exclusion is a decision for the machine's owner.
+   */
+  check('it names the detection', prompt.includes('Trojan:Win32/SuspExec.SE'));
+  check('it says the judgement is behavioural, not a file', prompt.includes('判据是**行为**，不是文件'));
+  check('it says it is intermittent', prompt.includes('不会每次都拦'));
+  check('it gives the read-only check', prompt.includes('Get-MpPreference') && prompt.includes('Get-MpThreatDetection'));
+  check('it gives the exclusion command', prompt.includes('Add-MpPreference -ExclusionPath'));
+  check('it requires asking the owner first', prompt.includes('由他决定要不要执行'));
+  check('it says why: this lowers protection', prompt.includes('降低本机安全防护'));
+  check('it forbids adding the exclusion unilaterally', prompt.includes('不要自己加排除'));
+  check('it forbids disabling protection instead', prompt.includes('关掉实时保护'));
+  check('it runs before SSH', prompt.indexOf('开工前先查一件事') < prompt.indexOf('## 步骤 1'));
+  // Not a gate: a machine whose owner declines must still be paired, and the risk reported.
+  check('a declined exclusion does not block the pairing', prompt.includes('不是必须成功的'));
+  check('and the risk is reported instead', prompt.includes('杀毒软件未排除'));
+  // Both forms carry it: the copied prompt reaches machines that never fetch a link.
+  check('the copied form carries it too', buildSetupPrompt({ publicKey: read.publicKey, user: 'dev', port: 22 }).includes('Trojan:Win32/SuspExec.SE'));
+}
+
 console.log(`\n${failures === 0 ? 'SETUP MODULE VERIFIED' : `${String(failures)} CHECK(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);
