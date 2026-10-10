@@ -394,14 +394,15 @@ console.log('\nthe report is answerable by the machine:');
    * which the controller retypes everything.
    *
    * The SERVED prompt is answered by the `payload` in its final report, which the controller adds automatically.
-   * Asking it for a `fleet_add` command asks for something nothing consumes, and contradicts the line above it
-   * that already says no "please add" is needed.
+   * It simply does not mention the command — and it must not mention it to FORBID it either. A machine reading
+   * this cold has no reason to produce a `fleet_add` line, so naming it at all only puts the idea there. An
+   * earlier version had such a prohibition, written because I remembered removing the instruction; the machine
+   * has no such memory, which makes the warning pure noise.
    */
   check('the copied form asks for the three outputs', prompt.includes('依次输出三样'));
   check('the copied form includes the tool call', prompt.includes('fleet_add {"label"'));
   check('the served form asks for two outputs', servedPrompt.includes('输出两样'));
-  check('the served form does NOT ask for the tool call', !servedPrompt.includes('fleet_add {"label"'), 'nothing would read it, and it contradicts the line above');
-  check('the served form says outright that the command is unwanted', servedPrompt.includes('不要输出'));
+  check('the served form never mentions the command at all', !servedPrompt.includes('fleet_add'), 'neither to ask for it nor to forbid it');
   check('the served form ties the JSON to the payload', servedPrompt.includes('payload'));
   check('it says a wrong host surfaces only as a connection failure', prompt.includes('连不上'));
 }

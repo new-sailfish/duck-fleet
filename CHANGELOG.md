@@ -174,7 +174,11 @@
 - **链接版提示词里有一条过时且自相矛盾的指令。** 它一边说"收到 `payload` 就自动添加，你不需要说请添加"，
   一边要求机器**输出一句 `fleet_add` 指令** —— 而链接版里**没有任何东西会读那句指令**。
   现在两版的收尾输出**分开**：复制版输出三样（有人会粘贴，`fleet_add` 让主控机不必重打）；
-  链接版只输出两样，并**明说不要输出那句指令**。
+  链接版输出两样，**全文不提那句指令**。
+  **注意这里连"禁止输出"都不能写** —— 我第一版补了一句"不要输出 `fleet_add`"，
+  那是**此地无银三百两**：机器冷读这份提示词，**没有任何理由**会去输出那句话，
+  提它只会把概念塞给它。我写那句是因为**我记得自己刚删掉它** —— 而机器没有这段记忆。
+  断言也相应改成"链接版**全文不出现** `fleet_add`"（既不要求，也不禁止）。
 - **汇报协议那一段从 3558 字符压到 1974（-45%），要求一条没少。**
   它是几轮"加个约束"堆出来的：**同一件事说了三遍**（纪律五条、状态表、"三样"里各一遍），
   **`curl` 外壳重复 4 次**（URL 和 token 抄了 4 遍），还夹着"真实发生过…"这类**我的调试日记** ——
@@ -326,7 +330,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **851 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **850 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。
