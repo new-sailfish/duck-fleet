@@ -387,12 +387,22 @@ console.log('\nthe report is answerable by the machine:');
   });
   check('the served form carries the same rule', servedPrompt.includes('同一个 /24') && servedPrompt.includes('ping 192.168.3.158'));
   check('the served form says an unreachable answer must be reported as such', servedPrompt.includes('没有任何地址能确认到达主控机'));
-  // The three closing outputs belong to BOTH forms: the copied prompt is answered by pasting, which needs the
-  // same values, and it is the `fleet_add` line that makes them usable without retyping.
-  check('the copied form still asks for the three outputs', prompt.includes('输出三样东西'));
-  check('the copied form still includes the tool call', prompt.includes('fleet_add {"label"'));
-  check('the served form also asks for the three outputs', servedPrompt.includes('输出三样东西'));
-  check('the served form also includes the tool call', servedPrompt.includes('fleet_add {"label"'));
+  /**
+   * The closing outputs differ between the two forms, and that difference is the point.
+   *
+   * The COPIED prompt is answered by pasting, so it needs all three — including the `fleet_add` call, without
+   * which the controller retypes everything.
+   *
+   * The SERVED prompt is answered by the `payload` in its final report, which the controller adds automatically.
+   * Asking it for a `fleet_add` command asks for something nothing consumes, and contradicts the line above it
+   * that already says no "please add" is needed.
+   */
+  check('the copied form asks for the three outputs', prompt.includes('依次输出三样'));
+  check('the copied form includes the tool call', prompt.includes('fleet_add {"label"'));
+  check('the served form asks for two outputs', servedPrompt.includes('输出两样'));
+  check('the served form does NOT ask for the tool call', !servedPrompt.includes('fleet_add {"label"'), 'nothing would read it, and it contradicts the line above');
+  check('the served form says outright that the command is unwanted', servedPrompt.includes('不要输出'));
+  check('the served form ties the JSON to the payload', servedPrompt.includes('payload'));
   check('it says a wrong host surfaces only as a connection failure', prompt.includes('连不上'));
 }
 
