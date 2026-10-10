@@ -89,7 +89,11 @@ console.log('\nno key is declared and then never used:');
   // counting only the literal form reported `pruneEnabled` as an orphan while it was being passed to
   // `archiveField` as a string, and would have reported the field labels for the same reason.
   const body = lines.filter((_, index) => index < start || index > dictionaryEnd).join('\n');
-  const unused = en.filter((key) => !new RegExp(`\\b${key}\\b`).test(body));
+  // Dynamic lookups are real lookups. The stage labels are reached as a template, `t(\`pairStage${stage}\`)`, so
+  // the key never appears whole and matching the literal form reported all six as orphans.
+  const dynamic = [...body.matchAll(/\bt\(`([A-Za-z][A-Za-z0-9_]*)\$\{/g)].map((match) => match[1]);
+  check('the dynamic key prefixes were found', dynamic.length > 0, 'a rewrite that drops the template would silently skip this exemption');
+  const unused = en.filter((key) => !new RegExp(`\\b${key}\\b`).test(body) && !dynamic.some((prefix) => key.startsWith(prefix)));
   check('no orphans', unused.length === 0, unused.join(', '));
 }
 

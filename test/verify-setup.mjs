@@ -361,10 +361,29 @@ console.log('\nthe report is answerable by the machine:');
   check('it asks for every address when there are several', prompt.includes('都列出来'));
   // The address rule: the wrong answer here is the one whose failure is least informative, and a VPN address
   // is the usual wrong answer.
+  // The exclusions are the part that needs to know nothing, so BOTH forms carry them.
   check('it bans VPN and tunnel interfaces', prompt.includes('tun') && prompt.includes('169.254'));
-  check('it prefers the controller subnet', prompt.includes('同一个 /24'));
-  check('it falls back to ICMP', prompt.includes('ping'));
-  check('it says an unreachable answer must be reported as such', prompt.includes('没有任何地址能确认到达主控机'));
+  check('the copied form does not claim to know the controller subnet', prompt.includes('没有**通过链接取这段提示词'));
+  check('the copied form forbids pinging without a target', prompt.includes('不要 ping'));
+  // The subnet comparison and the ICMP step need the controller's address, which only the SERVED prompt knows —
+  // and a prompt is "served" by having a callback URL, so that is what selects this form.
+  const servedPrompt = buildSetupPrompt({
+    publicKey: read.publicKey,
+    user: 'dev',
+    port: 22,
+    controllerAddress: '192.168.3.158',
+    callback: { url: 'http://192.168.3.158:5000/report', token: 'tok', address: '192.168.3.158' },
+  });
+  check('the served form prefers the controller subnet', servedPrompt.includes('同一个 /24'));
+  check('the served form names the controller address', servedPrompt.includes('192.168.3.158'));
+  check('the served form falls back to ICMP', servedPrompt.includes('ping 192.168.3.158'));
+  check('the served form says an unreachable answer must be reported as such', servedPrompt.includes('没有任何地址能确认到达主控机'));
+  // The three closing outputs belong to BOTH forms: the copied prompt is answered by pasting, which needs the
+  // same values, and it is the `fleet_add` line that makes them usable without retyping.
+  check('the copied form still asks for the three outputs', prompt.includes('输出三样东西'));
+  check('the copied form still includes the tool call', prompt.includes('fleet_add {"label"'));
+  check('the served form also asks for the three outputs', servedPrompt.includes('输出三样东西'));
+  check('the served form also includes the tool call', servedPrompt.includes('fleet_add {"label"'));
   check('it says a wrong host surfaces only as a connection failure', prompt.includes('连不上'));
 }
 
