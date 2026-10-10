@@ -363,7 +363,7 @@ console.log('\nthe report is answerable by the machine:');
   // is the usual wrong answer.
   // The exclusions are the part that needs to know nothing, so BOTH forms carry them.
   check('it bans VPN and tunnel interfaces', prompt.includes('tun') && prompt.includes('169.254'));
-  check('the copied form does not claim to know the controller subnet', prompt.includes('没有**通过链接取这段提示词'));
+  check('the copied form does not claim to know the controller subnet', prompt.includes('这段提示词里没有主控机的地址'));
   check('the copied form forbids pinging without a target', prompt.includes('不要 ping'));
   // The subnet comparison and the ICMP step need the controller's address, which only the SERVED prompt knows —
   // and a prompt is "served" by having a callback URL, so that is what selects this form.
