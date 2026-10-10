@@ -45,10 +45,6 @@
 - 指定的密钥路径不存在时静默回退到扫描目录。
 - 提示词新增杀毒软件检查（Windows Defender 将 DSH 报为 `Trojan:Win32/SuspExec.SE`）。
 
-### 说明
-
-- 测试 880 断言 / 23 套。
-
 ---
 
 ## [0.2.0] — 2026-10-09
@@ -80,10 +76,6 @@
 - 安装后需重启一次 DSH（客户端 bundle 有缓存，刷新页面不重读磁盘）。
 - 被控机提示词的权限环节：要求先读 profile patch 当前内容、缺哪条补哪条；说明不应在设置面板中修改权限。
 
-### 说明
-
-- 测试 589 断言 / 16 套。
-
 ---
 
 ## [0.1.0] — 2026-10-08
@@ -99,12 +91,6 @@
 - `fleet_setup` 生成自包含的被控机引导提示词。
 - 局域网分享提示词：短期 HTTP 地址、4 位随机路径、限单台机器读取、自动关闭。
 - `fleet_test`：仅验证 SSH + ACP 握手，不消耗 token。
-
-### 说明
-
-- 包名 `dsh-duck-fleet`，产品名 **DuckFleet**（中文名 **鸭群**）。
-- 被控机不需要安装本插件，只需要 sshd、`dsh` 与一个 `acp` profile。
-- 工具名（`fleet_*`）与配置文件路径（`fleet.json`）是稳定接口。
 
 [0.3.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.3.0
 [0.2.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.2.0
