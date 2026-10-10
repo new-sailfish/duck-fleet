@@ -361,12 +361,23 @@ console.log('\nthe report is answerable by the machine:');
   check('it asks for every address when there are several', prompt.includes('都列出来'));
   // The address rule: the wrong answer here is the one whose failure is least informative, and a VPN address
   // is the usual wrong answer.
-  // The exclusions are the part that needs to know nothing, so BOTH forms carry them.
   check('it bans VPN and tunnel interfaces', prompt.includes('tun') && prompt.includes('169.254'));
-  check('the copied form does not claim to know the controller subnet', prompt.includes('这段提示词里没有主控机的地址'));
-  check('the copied form forbids pinging without a target', prompt.includes('不要 ping'));
-  // The subnet comparison and the ICMP step need the controller's address, which only the SERVED prompt knows —
-  // and a prompt is "served" by having a callback URL, so that is what selects this form.
+  // ONE rule, used by BOTH prompts, and it names the controller's address in both. The address is a fact about
+  // the controller, so this plugin always has it; an earlier version withheld it from the copied prompt and
+  // then had to weaken the rule into something the machine could not act on — it asked the machine to choose
+  // between its own addresses while denying it the only information that makes choosing possible.
+  const copiedOnly = buildSetupPrompt({ publicKey: read.publicKey, user: 'dev', port: 22, controllerAddress: '192.168.3.158' });
+  check('the copied form names the controller address', copiedOnly.includes('192.168.3.158'));
+  check('the copied form prefers the controller subnet', copiedOnly.includes('同一个 /24'));
+  check('the copied form falls back to ICMP', copiedOnly.includes('ping 192.168.3.158'));
+  check('the copied form says an unreachable answer must be reported as such', copiedOnly.includes('没有任何地址能确认到达主控机'));
+  check('the copied form no longer claims it cannot know', !copiedOnly.includes('这段提示词里没有主控机的地址'));
+  check('it is the same rule in both forms', copiedOnly.includes('地址挑选规则') && prompt.includes('地址挑选规则'));
+  // A prompt built with no address named at all still fills the rule in: the value is computed from this
+  // machine's interfaces rather than left as a blank for the machine to ping.
+  const computed = buildSetupPrompt({ publicKey: read.publicKey, user: 'dev', port: 22 });
+  check('the address is computed when the caller names none', !/\{CALLBACK_HOST\}/.test(computed) && computed.includes('ping '), 'a surviving placeholder would render a rule that cannot be followed');
+  // The served form is the same rule plus the reporting section, so it must agree.
   const servedPrompt = buildSetupPrompt({
     publicKey: read.publicKey,
     user: 'dev',
@@ -374,9 +385,7 @@ console.log('\nthe report is answerable by the machine:');
     controllerAddress: '192.168.3.158',
     callback: { url: 'http://192.168.3.158:5000/report', token: 'tok', address: '192.168.3.158' },
   });
-  check('the served form prefers the controller subnet', servedPrompt.includes('同一个 /24'));
-  check('the served form names the controller address', servedPrompt.includes('192.168.3.158'));
-  check('the served form falls back to ICMP', servedPrompt.includes('ping 192.168.3.158'));
+  check('the served form carries the same rule', servedPrompt.includes('同一个 /24') && servedPrompt.includes('ping 192.168.3.158'));
   check('the served form says an unreachable answer must be reported as such', servedPrompt.includes('没有任何地址能确认到达主控机'));
   // The three closing outputs belong to BOTH forms: the copied prompt is answered by pasting, which needs the
   // same values, and it is the `fleet_add` line that makes them usable without retyping.
