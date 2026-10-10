@@ -171,6 +171,16 @@
 
 ### 修复
 
+- **「需要重启」被当成失败，导致整份配置被丢掉（真实失败）。**
+  一台真实的被控机上，Windows 收下了 OpenSSH Server 功能包，但能力停在 `InstallPending` ——
+  **不重启就没有 `sshd.exe`、没有服务、22 端口无监听**。
+  而它**其余全部做完了且都是对的**：防火墙规则、`acp` profile 的 patch、公钥、独立 workspace。
+  旧流程把这报成失败并**丢掉整份配置**，操作者只能从头再来一遍 —— 而活其实已经干完了。
+  **「等重启」不是「没做成」**，现在 `state` 多了 **`pending`**：终态汇报照常带 `payload`、
+  机器**照常自动加进列表**，只是配对状态记为 **`incomplete`** 并显示 `next` 里的待办步骤
+  （例如"重启后执行 `Start-Service sshd; Set-Service sshd -StartupType Automatic`"）。
+  提示词里也写明了这个区别：**`pending` 是「还有下一步」，`fail` 是「没辙了」**，
+  并把 `pending` 报成 `fail` 的代价（丢掉整份配置）明说给被控机听。
 - **终态汇报的载荷格式，提示词里从来没写过（真实失败）。**
   步骤 0 写着「最后一步 `done` 要把配置一起带上，**格式见文末**」——
   而**文末那三样里根本没有 `payload` 这个字段**：它只讲了给人看的列表、JSON、`fleet_add` 指令。
@@ -268,7 +278,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **826 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **833 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。

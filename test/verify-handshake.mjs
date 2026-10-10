@@ -162,7 +162,38 @@ console.log('\nthe stage states a machine may report:');
   // pending after it had finished, so it is refused rather than stored.
   const waiting = await post({ stage: 'sshd', state: 'waiting' });
   check('`waiting` is refused', waiting.status === 400, String(waiting.status));
-  check('and the refusal names the allowed states', (await waiting.json()).error.includes('started'), String((await waiting.json()).error));
+  // Read the body ONCE. Calling `.json()` twice throws "Body is unusable", which is how this line silently took
+  // the rest of the suite down with it.
+  const refusal = await waiting.json();
+  check('and the refusal names the allowed states', refusal.error.includes('started'), String(refusal.error));
+  await progress.close();
+}
+
+console.log('\n`pending` keeps the work instead of discarding it:');
+{
+  // A real run: Windows accepted the OpenSSH Server package, left the capability in `InstallPending` behind a
+  // required reboot, and the whole pairing was thrown away — along with a firewall rule, an `acp` profile patch,
+  // an installed key and a created workspace, all of which were finished and correct. A step waiting on a reboot
+  // is a step that is COMING, so it must not cost the operator the rest of the work.
+  const progress = new ProgressListener();
+  const opened = await progress.open({ minutes: 5 });
+  const post = (body) => fetch(opened.url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-fleet-token': opened.token },
+    body: JSON.stringify(body),
+  });
+
+  check('a `pending` stage is accepted', (await post({ stage: 'sshd', state: 'pending', detail: 'capability is InstallPending' })).status === 200);
+  const payload = { label: 'cursor', host: '192.168.3.172', user: 'cursorbot', port: 22, remoteCommand: 'C:/x/dsh.cmd', cwd: 'C:/Users/cursorbot/.dsh-fleet-workspace' };
+  const final = await post({ stage: 'done', state: 'pending', next: 'after reboot: Start-Service sshd', payload });
+  check('a `pending` final report is accepted', final.status === 200, String(final.status));
+
+  const status = progress.status(opened.token);
+  check('the pairing is marked incomplete, not failed', status.state === 'incomplete', status.state);
+  check('the payload is KEPT', status.payload?.host === '192.168.3.172', JSON.stringify(status.payload));
+  // The remaining step is the whole point of the state: without it the panel could only say "incomplete".
+  check('what is still owed is carried through', status.next === 'after reboot: Start-Service sshd', String(status.next));
+  check('the stage itself reads pending', status.stages.find((entry) => entry.stage === 'sshd')?.state === 'pending');
   await progress.close();
 }
 
