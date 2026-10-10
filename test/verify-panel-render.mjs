@@ -262,5 +262,33 @@ console.log('\nthe archive controls have the right static shape:');
   check('both controls can be disabled while a prune runs', toggle?.disabled === false && keep?.disabled === false);
 }
 
+console.log('\nthe two ways to add a machine are offered as a choice:');
+{
+  // They were tangled into one column before: the form, the prompt, the key management and the LAN offer all
+  // together, so neither path read as a path. The panel offers them as alternatives now, and this is the state
+  // that proves it — nothing configured, nothing open.
+  check('the choice is on screen', walked.keys.includes('firstrun'), walked.keys.join(','));
+  const forkText = allText;
+  check('it says there are two ways', /两条路|Two ways/.test(forkText));
+  check('it says they are alternatives, not steps', /不是前后步骤|not steps/.test(forkText));
+  check('one option is manual entry', /我自己填|Fill in the details/.test(forkText));
+  check('the other is preparing the machine first', /先让机器自己准备好|Prepare the machine first/.test(forkText));
+  check('the manual option says what you need to know', /你已经知道主机名|already know the hostname/.test(forkText));
+  check('the prompt option says the machine reports back', /回报给你|report them back/.test(forkText));
+  // Both buttons must be real buttons in the tree, or the choice is only described rather than offered.
+  const labels = walked.tags.filter((tag) => tag === 'button').length;
+  check('there is a button for each path', labels >= 2, `${String(labels)} buttons`);
+}
+
+console.log('\nthe prompt text is not dumped into the page:');
+{
+  // The guide renders the two actions and the key metadata, not several thousand characters of instructions
+  // meant for another machine. `setup` is undefined in this state, so the check is that no prompt textarea
+  // exists on the page at all — the id it used to carry must be gone with it.
+  check('no prompt textarea is rendered', !walked.inputs.some((props) => props.id === 'fleet-setup-prompt'), 'the prompt is handed over, not read here');
+  // The JSON view is behind the editor, which is closed in this state.
+  check('no JSON box is rendered before the editor opens', !walked.inputs.some((props) => props.id === 'fleet-json'));
+}
+
 console.log(`\n${failures === 0 ? 'PANEL RENDER VERIFIED' : `${String(failures)} CHECK(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);

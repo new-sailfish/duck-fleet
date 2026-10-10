@@ -302,6 +302,26 @@ console.log('\nthe report is answerable by the machine:');
   check('it marks which items feed the configuration', prompt.includes('直接拿去写进配置'));
   check('it forbids pasting key material', prompt.includes('不要贴出公钥全文'));
   check('it demands honest failure reporting', prompt.includes('不要用「应该没问题」代替结论'));
+
+  // The dsh path is the item that decides whether the delegation can start at all: the controller runs it in
+  // a NON-interactive session whose PATH is short, so a bare `dsh` may not resolve. Without this, a machine
+  // reports everything else correctly and still cannot be driven.
+  check('it asks for the absolute path of dsh', prompt.includes('dsh 可执行文件的绝对路径'));
+  check('it says why a bare dsh is not enough', prompt.includes('PATH 很短'));
+  check('it forbids guessing that path', prompt.includes('不要猜一个'));
+
+  // The closing draft exists so the controller does not have to reassemble a machine record from prose.
+  check('it asks for a pasteable fleet_add draft', prompt.includes('fleet_add'));
+  for (const field of ['label', 'host', 'user', 'port', 'remoteCommand']) {
+    check(`the draft carries ${field}`, prompt.includes(`"${field}"`), 'a draft missing a required field cannot be used as-is');
+  }
+  // `host` is the one field the machine CANNOT verify: reachability is a fact about the controller's network.
+  // A draft that presents an unverified address as settled produces a machine record that only ever reports
+  // "cannot connect".
+  check('it says host is unverifiable from the controlled side', prompt.includes('不知道**主控机能不能连上哪个地址'));
+  check('it requires marking host unverified', prompt.includes('未经证实'));
+  check('it asks for every address when there are several', prompt.includes('多网卡'));
+  check('it says a wrong host surfaces only as a connection failure', prompt.includes('连不上'));
 }
 
 console.log('\nthe two standing bans are present and exported:');
