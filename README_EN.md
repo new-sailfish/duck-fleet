@@ -98,9 +98,9 @@ Open **Settings → DuckFleet**.
 All four are **checked and set up by the controlled machine's own agent**, working from the prompt. You do
 not configure any of it by hand.
 
-### 3. Get the setup prompt
+### 3. Two ways to deliver it
 
-**Settings → DuckFleet → "Add machine" → "Get it automatically"**, then choose how to deliver it:
+The prompt that "Get it automatically" produces reaches the controlled machine one of two ways:
 
 | Way | How | When to use it |
 |---|---|---|
@@ -126,19 +126,35 @@ half-configured one. Only the **public** key travels in it; the private key neve
 
 ### 4. Add the machine
 
-**Get it automatically** returns the full configuration in the machine's final report; the controller
-writes it and verifies it. If more than one address is reported, the panel asks you to choose.
+**Settings → DuckFleet → "Add machine"** offers two paths; pick one:
 
-Or register it by hand:
+| | Path | When to use it |
+|---|---|---|
+| **Recommended** | **"Get it automatically"** | hand the prompt to the machine; it reports back and the controller **writes and verifies it for you** |
+| Alternative | **"Fill it in myself"** | you already know the host, account and port, or want to edit the JSON directly |
 
-| Way | How |
-|---|---|
-| Ask the agent | say: "use `fleet_add` to add a machine: label `laptop-01`, host `192.168.1.10`, user `dev`" |
-| Settings page | **Settings → DuckFleet → "Add machine" → "Fill it in myself"**, then save and press "Test" |
-| Edit the file | change `$DSH_HOME/fleet.json`; no restart needed |
+#### Get it automatically (recommended)
+
+1. Click **"Get it automatically"** and deliver the prompt — **"Copy prompt"** to paste it, or
+   **"Serve on the LAN instead"** to let the machine fetch it;
+2. the **six stages** report their progress on the panel as the machine works;
+3. its final report carries the full configuration, which the controller **adds and verifies
+   automatically**. If more than one address is reported, the panel asks you to choose.
+
+#### Fill it in myself
+
+1. Click **"Fill it in myself"** and fill in `label` / `host` / `user` / `port`; the rest have defaults;
+2. or switch to the **JSON view** and edit that machine's record directly;
+3. save, then press **"Test"** to verify the SSH + ACP handshake.
 
 The ASCII letters in the label determine the tool name (`Home Server` → `pc_home_server`), and you can
-change it at any time. Call `fleet_test` to verify the SSH + ACP handshake (**costs no tokens**).
+change it at any time.
+
+#### Or have the agent do it
+
+> Use `fleet_add` to add a machine: label `laptop-01`, host `192.168.1.10`, user `dev`
+
+Or edit `$DSH_HOME/fleet.json` directly; no restart needed.
 
 ### 5. Delegate
 
