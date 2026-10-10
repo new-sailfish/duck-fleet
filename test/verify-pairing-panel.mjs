@@ -254,6 +254,46 @@ console.log('\na finished pairing keeps the checklist and reports what happened:
   check('and it says the check passed', text.includes('已添加进列表并验证通过'));
 }
 
+console.log('\n"added" and "answers right now" are two different things:');
+{
+  /**
+   * Reported from use: after a successful addition the card showed a red "added, but the check did not pass",
+   * because the machine had not been rebooted yet. Merging the two facts reads as "this did not work", when in
+   * fact the record was saved and only the machine's current availability is unknown.
+   */
+  const base = {
+    token: 't',
+    state: 'incomplete',
+    reports: 6,
+    remainingMs: 0,
+    next: '重启后执行：Start-Service sshd',
+    added: {
+      machine: { label: 'cursor', toolName: 'pc_cursor', host: '192.168.3.172', user: 'cursorbot', port: 22, cwd: 'C:/Users/cursorbot/.dsh-fleet-workspace' },
+      test: { ok: false, stage: 'handshake', message: 'stage=handshake Subagent failure' },
+    },
+    stages: [{ stage: 'sshd', state: 'pending', detail: '能力停在 InstallPending' }, { stage: 'verify', state: 'ok' }],
+  };
+  const text = render({ [HOOK.addTab]: 'prompt', [HOOK.setup]: setup, [HOOK.pairing]: base });
+
+  check('the addition is stated as done', text.includes('已添加进列表'));
+  check('the machine is named', text.includes('cursorbot@192.168.3.172:22'));
+  // Without the tool name the operator cannot address the machine at all.
+  check('the tool name is given', text.includes('pc_cursor'));
+  check('the outstanding step is still shown', text.includes('等重启') && text.includes('重启后执行'));
+  // The unreachable case is a WARNING with an explanation, not an error that contradicts the line above it.
+  check('the failed check is framed as "not yet", not as a failure', text.includes('它现在还不应答'));
+  check('and it says the record is saved anyway', text.includes('记录已经存下了'));
+  check('the old contradictory wording is gone', !text.includes('已添加，但验证没过'));
+
+  const healthy = render({
+    [HOOK.addTab]: 'prompt',
+    [HOOK.setup]: setup,
+    [HOOK.pairing]: { ...base, state: 'done', added: { ...base.added, test: { ok: true } } },
+  });
+  check('a reachable machine says so', healthy.includes('它应答了握手'));
+  check('and does not warn about being unreachable', !healthy.includes('它现在还不应答'));
+}
+
 console.log('\nmore than one address asks instead of guessing:');
 {
   const pairing = {

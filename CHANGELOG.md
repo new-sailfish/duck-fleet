@@ -171,6 +171,11 @@
 
 ### 修复
 
+- **「已添加」和「现在连得上」被混成一句红字。** 添加成功后，机器如果暂时不应答（例如等着重启），
+  面板显示的是红色的「**已添加，但验证没过**」加上错误信息 —— 读起来就是"这件事没成"，
+  而**记录其实已经存进列表了**，未知的只是那台机器此刻是否在线。
+  现在拆成两件事：**添加**用 ✓ 加机器名和**工具名**（没有工具名就没法派活），
+  **可达性**单独一行、用警示色，并说明「记录已经存下了，等它开机就能用」。
 - **配对成功了，面板却把它显示成「期限内没有回报」（真 bug）。**
   机器确实发了终态汇报，服务端也确实回了 `{"ok":true,"closed":true}` 并把它加进了列表 ——
   但添加成功后我调了 `progress.forget(token)`，**下一次轮询就查不到这个 token**，
@@ -295,7 +300,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **833 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **842 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。
