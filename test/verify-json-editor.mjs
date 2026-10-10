@@ -152,5 +152,30 @@ console.log('\na duplicate name warns but does not refuse:');
   check('a fresh name does not warn', fresh.warning === undefined, String(fresh.warning));
 }
 
+
+console.log('\nthe JSON -> form switch cannot be blocked:');
+{
+  // Reported from a live session: with a broken box, clicking the form tab did nothing. The handler had guards
+  // that returned BEFORE the state update, so an unusable box stranded the operator in a view whose complaint
+  // was already on screen — the guard added the dead end it was meant to prevent. Switching is unconditional
+  // now, and the strict check happens on save.
+  const start = source.indexOf('const showForm = () => {');
+  const end = source.indexOf('\n      };', start);
+  const body = source.slice(start, end);
+  check('the handler exists', start !== -1);
+  check('it always changes the view', /setEditorView\('form'\)/.test(body));
+  const setAt = body.indexOf("setEditorView('form')");
+  const returns = [...body.matchAll(/return;/g)].map((m) => m.index);
+  check('no early return precedes the view change', returns.every((at) => at > setAt), `setAt=${String(setAt)} returns=${JSON.stringify(returns)}`);
+  check('an unusable box still reports its errors', /setJsonErrors\(/.test(body));
+  check('the draft is replaced only when the text is usable', /checked\.patch === undefined/.test(body));
+
+  // The two axes must stay separate: the tab chooses where values COME FROM, the view chooses how they are
+  // typed. Conflating them was the reported confusion.
+  check('the tab state is separate from the view state', /const \[addTab, setAddTab\]/.test(source) && /const \[editorView, setEditorView\]/.test(source));
+  check('the manual tab hosts the editor', /addTab === 'manual' \? editor : null/.test(source));
+  check('the prompt tab hosts the guide', /addTab === 'prompt' \? setupDialog : null/.test(source));
+  check('the machine rows render outside the tab panel', /\.\.\.rows,/.test(source), 'the list must not disappear behind a tab');
+}
 console.log(`\n${failures === 0 ? 'JSON VALIDATION VERIFIED' : `${String(failures)} CHECK(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);

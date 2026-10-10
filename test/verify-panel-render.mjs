@@ -265,9 +265,10 @@ console.log('\nthe archive controls have the right static shape:');
 console.log('\nthe two ways to add a machine are offered as a choice:');
 {
   // They were tangled into one column before: the form, the prompt, the key management and the LAN offer all
-  // together, so neither path read as a path. The panel offers them as alternatives now, and this is the state
-  // that proves it — nothing configured, nothing open.
-  check('the choice is on screen', walked.keys.includes('firstrun'), walked.keys.join(','));
+  // together, so neither path read as a path. They are a TAB now, and the tab is the choice. The JSON view
+  // lives inside the manual tab — a peer tab for it split the wrong axis, since it edits the same record the
+  // form does.
+  check('the choice is on screen', walked.keys.includes('addpanel'), walked.keys.join(','));
   const forkText = allText;
   check('it says there are two ways', /两条路|Two ways/.test(forkText));
   check('it says they are alternatives, not steps', /不是前后步骤|not steps/.test(forkText));
