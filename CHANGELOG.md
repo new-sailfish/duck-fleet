@@ -115,6 +115,14 @@
 
 ### 修复
 
+- **装公钥那一步的说法不准确，已按实测改正。** 原文写「装到别的账号**等于没装**」——
+  实际不是：**授权是「账号级」的，不是「机器级」的**。公钥放进谁的 `authorized_keys`，
+  主控机就能以**谁的身份**登录；放到别的账号名下**不会失败，而是授权给了那个账号**，
+  主控机照样能登进来，只是 `dsh`、家目录、profile 全都不在预期位置 ——
+  这比直接失败更容易被忽略。实测（真实机器，同一把私钥）：
+  `huawei@本机` 成功，`user@本机` 与 `public@本机` 均为 `Permission denied`。
+  提示词现在写明：同一把私钥可以用在**很多台机器**上（本机并不独占），
+  但在**同一台机器上只对应一个账号**；主控机派活时写的 `账号@本机`，那个「账号」就是这里要装对的。
 - **账号那一步与后面的步骤自相矛盾，会让公钥永远装不上。**
   「未知账号」的措辞原来写着「查清后**停下来**，把结果报告给主控机，**再继续后面的步骤**」——
   而**装公钥是四节之后的第 4 步**，也就是真正写 `authorized_keys` 的那一步。
@@ -193,7 +201,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **699 断言 / 18 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **703 断言 / 18 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。

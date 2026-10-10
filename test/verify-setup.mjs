@@ -182,7 +182,15 @@ console.log('\nthe account is a claim to verify, never a fact to act on:');
     check('and says it is waiting for an answer', ACCOUNT_KNOWN.includes('等它回话'));
     check('and points out the difference from the unknown case', ACCOUNT_KNOWN.includes('区别'));
     // The key lands under the running account, so the two must be cross-checked in the report.
-    check('the key step targets the settled account', prompt.includes('上一步核实过的那个账号') && prompt.includes('~/.ssh/authorized_keys'));
+    check('the key step targets the settled account', prompt.includes('上一步定下的那个账号') && prompt.includes('~/.ssh/authorized_keys'));
+  // Authorization is per ACCOUNT, not per machine. Verified against a real machine: the same private key logs in
+  // as the account whose authorized_keys holds it, and gets `Permission denied` for any other account name on
+  // that host. The wording must not claim "installing under another account is the same as not installing" --
+  // it grants access to a DIFFERENT account, which looks like success from the controller side.
+  check('it says authorization is per account', prompt.includes('授权是「账号级」的，不是「机器级」的'));
+  check('it says another account is denied, not admitted', prompt.includes('Permission denied'));
+  check('it corrects the "same as not installing" idea', prompt.includes('不是「等于没装」，而是「授权给了另一个账号」'));
+  check('it says the key is reusable across machines but not across accounts', prompt.includes('很多台机器') && prompt.includes('只对应一个账号'));
     check('the report asks which account the key went under', prompt.includes('公钥装到了哪个账号名下'));
     check('and says a difference must be stated', prompt.includes('直接说明哪个是哪个'));
   }
