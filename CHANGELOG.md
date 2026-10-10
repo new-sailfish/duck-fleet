@@ -171,6 +171,19 @@
 
 ### 修复
 
+- **主机密钥变了就永久连不上，而且只报一个裸的 `exit code: 255`（真实失败）。**
+  一台机器重启后，**便携版 sshd 被系统 sshd 取代，主机密钥随之改变**。`ssh` 对"已存条目不匹配"是**拒绝连接**的
+  （`accept-new` 只接受**未知**主机），于是那台机器**再也连不上**，只能靠人手敲 `ssh-keygen -R`。
+  更糟的是**原因被丢掉了**：ssh 把 `Host key verification failed` 写在 stderr，而**它没有被收集**，
+  所以界面上只剩一个没有信息量的退出码。
+  现在：
+  - **收集子进程的 stderr**（上限 4000 字符）并附在失败信息后面 —— 报错终于说了原因；
+  - **识别这一类失败**（`REMOTE HOST IDENTIFICATION HAS CHANGED` / `Host key verification failed`），
+    **清掉该地址的旧条目并重试一次**；
+  - **如实报告**：恢复成功时说清"密钥变过、已更新"，并给出**新指纹**（用 `ssh-keyscan` + `ssh-keygen -lf` 读回）。
+  **这不是关掉校验**：重试**每次测试只发生一次**，且指纹变化**被显示出来** ——
+  意外变化仍然可见。清条目本身用的是 `ssh-keygen -R`，**和人手敲的是同一条命令**。
+  实测：制造出真实的"密钥变过"状态后，第一次测试 **14035ms 自愈成功**，第二次 **2895ms** 正常；`known_hosts` 已换成正确密钥。
 - **链接版提示词里有一条过时且自相矛盾的指令。** 它一边说"收到 `payload` 就自动添加，你不需要说请添加"，
   一边要求机器**输出一句 `fleet_add` 指令** —— 而链接版里**没有任何东西会读那句指令**。
   现在两版的收尾输出**分开**：复制版输出三样（有人会粘贴，`fleet_add` 让主控机不必重打）；
@@ -330,7 +343,7 @@
 
 ### 说明
 
-- 测试从 489 断言 / 13 套增加到 **850 断言 / 22 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
+- 测试从 489 断言 / 13 套增加到 **867 断言 / 23 套**（新增 `test/verify-prune.mjs`、`test/verify-client-locale.mjs`、`test/verify-panel-render.mjs`、`test/verify-json-editor.mjs`、`test/verify-dictionaries.mjs`）。
 - 上述两条安全性质、平台门禁与 LAB 标注均**由断言钉住**：删掉它们，测试会红。
 - 两处面板修复也**由断言钉住**：`test/verify-client-locale.mjs` 打桩 `__ModuleLoader__` 把真实 bundle
   跑起来，用**严格执行契约的替身**（重复注册就抛）把插件 apply 两次，并断言第二次不抛错。
