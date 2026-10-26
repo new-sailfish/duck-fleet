@@ -5,6 +5,17 @@
 
 ---
 
+## [0.5.0] — 2026-10-26
+
+### 新增
+
+- 派活前置词补充 Windows 桌面规则：SSH → DSH 链路的进程在 Session 0、没有交互桌面，GUI 程序要投到登录用户的 `winsta0\default`；给出「SYSTEM 令牌 + CreateProcessAsUser」与「交互式计划任务」两条做法。
+
+### 修复
+
+- 宿主内的 `@deepseek-ai/dsh-subagent` 升级到 0.2.1 后，派活会报 `deps.subagents.start is not a function`；现适配该版本的激活接口，派活恢复。
+- 环境检查发现缺少 `ssh` 或 `ssh-keygen` 时，设置面板会因渲染失败而只显示错误提示；现正常显示环境提示卡。
+
 ## [0.4.0] — 2026-10-10
 
 ### 新增
@@ -106,6 +117,7 @@
 - 局域网分享提示词：短期 HTTP 地址、4 位随机路径、限单台机器读取、自动关闭。
 - `fleet_test`：仅验证 SSH + ACP 握手，不消耗 token。
 
+[0.5.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.5.0
 [0.4.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.4.0
 [0.3.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.3.0
 [0.2.0]: https://github.com/new-sailfish/duck-fleet/releases/tag/v0.2.0

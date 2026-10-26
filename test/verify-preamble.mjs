@@ -27,11 +27,14 @@ check('windows: branches the encoding rule for 7+', windows.includes('【7+】')
 check('windows: forbids the assignment Defender deletes', windows.includes('永不写 .LastWriteTime'));
 check('windows: keeps the loader-shape ban', windows.includes('加载器特征'));
 check('windows: says which host decides, not which session', windows.includes('实际执行脚本的那个宿主'));
+check('windows: says the ssh chain lands in session 0', windows.includes('Session 0'));
+check('windows: gives a route onto the interactive desktop', windows.includes('winsta0\\default'));
 check('windows: carries the task-agnostic rules too', windows.includes('工作通则'));
 
 const posix = preambleFor({ platform: 'posix' });
 check('posix: drops the Windows block', !posix.includes('本节仅适用于 Windows'));
 check('posix: drops the PowerShell branch', !posix.includes('【5.1】'));
+check('posix: drops the interactive-desktop route', !posix.includes('winsta0'));
 check('posix: keeps the working rules', posix.includes('工作通则'));
 
 check('none: sends no preamble at all', preambleFor({ platform: 'none' }) === '');

@@ -36,7 +36,7 @@ function loadFactory() {
  * `useState` hands back a setter that writes the cell, so a `useEffect`-driven reload inside the component
  * would be observable — though nothing here mounts, so only the first render matters.
  */
-function makeReact() {
+function makeReact(seeded = {}) {
   let cells = [];
   let cursor = 0;
   const createElement = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
@@ -47,6 +47,9 @@ function makeReact() {
       useState(initial) {
         const index = cursor;
         cursor += 1;
+        // A seeded cell is the state a later render would see; it is how the suite reaches a render that an
+        // effect would normally produce without mounting anything.
+        if (Object.hasOwn(seeded, index)) return [seeded[index], () => {}];
         if (cells.length <= index) cells[index] = typeof initial === 'function' ? initial() : initial;
         return [cells[index], (next) => { cells[index] = typeof next === 'function' ? next(cells[index]) : next; }];
       },
@@ -182,7 +185,7 @@ function walk(node, out = { texts: [], types: [], tags: [], inputs: [], keys: []
   if (typeof node === 'object' && 'type' in node) {
     out.types.push(typeof node.type === 'string' ? node.type : (node.type?.name ?? 'anonymous'));
     if (typeof node.type === 'string') out.tags.push(node.type);
-    if (node.type === 'input') out.inputs.push(node.props);
+    if (node.type === 'input' || node.type === 'textarea') out.inputs.push(node.props);
     if (node.props?.key !== undefined) out.keys.push(String(node.props.key));
     for (const child of node.children ?? []) walk(child, out);
     return out;
@@ -295,6 +298,42 @@ console.log('\nthe prompt text is not dumped into the page:');
   check('no prompt textarea is rendered', !walked.inputs.some((props) => props.id === 'fleet-setup-prompt'), 'the prompt is handed over, not read here');
   // The JSON view is behind the editor, which is closed in this state.
   check('no JSON box is rendered before the editor opens', !walked.inputs.some((props) => props.id === 'fleet-json'));
+}
+
+console.log('\nthe environment card renders after the check reports a missing tool:');
+{
+  // The environment card is built only when the check came back NOT ok, and building it evaluates
+  // `copyNoteFor('env')`. Declaring that helper below the card threw `Cannot access 'copyNoteFor' before
+  // initialization` on exactly this render — the state in which the panel is supposed to explain the missing
+  // SSH client — and the error fence replaced the card. The seed is FleetPanel's environment state (index 15:
+  // the 16th `useState`), standing in for the state a completed environment check would have set.
+  const failed = { ok: false, ssh: { present: false, detail: 'not found on PATH' }, keygen: { present: false, detail: 'not found on PATH' }, prompt: 'install OpenSSH' };
+  const reactWithFailedCheck = makeReact({ 15: failed });
+  const seededSlots = makeSlots();
+  const seededPlugin = loadFactory().factory(() => reactWithFailedCheck.React);
+  seededPlugin.apply({
+    locale: makeLocale(),
+    slots: seededSlots,
+    logger: { warn: () => {} },
+    effect(run) { const dispose = run(); return typeof dispose === 'function' ? dispose : () => {}; },
+  });
+  const seededComponent = seededSlots.entries.get('fleet').component;
+  check('the panel registered a component', typeof seededComponent === 'function');
+
+  reactWithFailedCheck.begin();
+  let seededTree;
+  let seededFailure;
+  try {
+    seededTree = expand(seededComponent({ close: () => {} }), 0);
+  } catch (error) {
+    seededFailure = error;
+  }
+  check('the panel renders instead of hitting the error fence', seededFailure === undefined,
+    seededFailure instanceof Error ? seededFailure.message : String(seededFailure));
+  const seededWalked = walk(seededTree);
+  const seededText = seededWalked.texts.join(' | ');
+  check('the environment card is in the tree', seededWalked.inputs.some((props) => props.id === 'fleet-env-prompt'), `texts: ${seededText.slice(0, 200)}`);
+  check('the card names what is missing', seededText.includes('not found on PATH'), seededText.slice(0, 300));
 }
 
 console.log(`\n${failures === 0 ? 'PANEL RENDER VERIFIED' : `${String(failures)} CHECK(S) FAILED`}`);

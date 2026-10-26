@@ -56,7 +56,7 @@ import { fileURLToPath } from 'node:url';
  * Bump the suffix whenever the plugin's behavior changes. It is what `fleet_version` reports, so a
  * reload can be confirmed by reading rather than by trusting.
  */
-export const FLEET_REVISION = 'r4-version-probe';
+export const FLEET_REVISION = 'r5-start-activation';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
