@@ -117,13 +117,13 @@ console.log('an activation-only Host (the current seam):');
   check('exactly one activation was started', calls.length === 1, String(calls.length));
   check('the registered provider name is used', spec?.provider === 'fleet-b', String(spec?.provider));
   check('the tool description becomes the label', spec?.label === 'verify', String(spec?.label));
-  check('the parent is the calling agent', spec?.request?.parent === exec.agent, String(spec?.request?.parent?.id));
+  check('the parent is the calling agent', spec?.parent === exec.agent, String(spec?.parent?.id));
   check('the signal is the caller\'s', spec?.signal === exec.signal, String(spec?.signal));
   // Caller delivery: the tool call returns the answer. `parent` delivery would inject a second copy of it
   // as a completion notice the session never asked for.
   check('the activation uses caller delivery', spec?.delivery === 'caller', String(spec?.delivery));
-  const sent = spec?.request?.prompt?.[0];
-  check('the prompt is one text block', spec?.request?.prompt?.length === 1 && sent?.type === 'text', JSON.stringify(spec?.request?.prompt));
+  const sent = spec?.prompt?.[0];
+  check('the prompt is one text block', spec?.prompt?.length === 1 && sent?.type === 'text', JSON.stringify(spec?.prompt));
   check('the prompt carries the preamble in front of the task', String(sent?.text).includes('工作通则') && String(sent?.text).endsWith(TASK), String(sent?.text).slice(0, 90));
   check('the result settles before disposal', order.join(',') === 'result,dispose', order.join(','));
   scratch.dispose();

@@ -5,6 +5,12 @@
 
 ---
 
+## [未发布]
+
+### 修复
+
+- 宿主提供 `startActivation(spec)` 时，派活一律报 `Cannot read properties of undefined (reading 'id')`；现在能正常派活。
+
 ## [0.5.0] — 2026-10-26
 
 ### 新增
